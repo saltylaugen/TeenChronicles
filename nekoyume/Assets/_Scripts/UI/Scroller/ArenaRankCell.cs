@@ -125,14 +125,15 @@ namespace Nekoyume.UI.Scroller
                 .AddTo(gameObject);
             
             // [TEEN Code Block Start]
-            {
+            if (maxChallengeButton != null) {
                 maxChallengeButton.OnSubmitClick
-               .Subscribe(_ =>
-               {
-                   AudioController.PlayClick();
-                   ChallangeRemainingTickets();
-               })
-               .AddTo(gameObject);
+                    .ThrottleFirst(new TimeSpan(0, 0, 1))
+                    .Subscribe(_ =>
+                    {
+                        AudioController.PlayClick();
+                        ChallangeRemainingTickets();
+                    })
+                    .AddTo(gameObject);
             }
             // [TEEN Code Block End]
 
@@ -155,7 +156,9 @@ namespace Nekoyume.UI.Scroller
             var currentAddress = States.Instance.CurrentAvatarState?.address;
             var arenaInfo = States.Instance.WeeklyArenaState.GetArenaInfo(currentAddress.Value);
 
-            //Debug.LogError("Remaining Tickets: " + arenaInfo.DailyChallengeCount);
+            Debug.LogError("Remaining Tickets: " + arenaInfo.AvatarName);
+            Debug.LogError("Remaining Tickets: " + arenaInfo.DailyChallengeCount);
+
             for (int i = 0; i < arenaInfo.DailyChallengeCount; i++)
             {
                 Context.OnClickChallenge.OnNext(this);
