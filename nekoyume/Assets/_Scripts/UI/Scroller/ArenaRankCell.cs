@@ -153,13 +153,12 @@ namespace Nekoyume.UI.Scroller
         // [TEEN Code Block Start]
         public void ChallangeRemainingTickets()
         {
-            var currentAddress = States.Instance.CurrentAvatarState?.address;
-            var arenaInfo = States.Instance.WeeklyArenaState.GetArenaInfo(currentAddress.Value);
+            // var currentAddress = States.Instance.CurrentAvatarState?.address;
+            // var arenaInfo = States.Instance.WeeklyArenaState.GetArenaInfo(currentAddress.Value);
 
-            Debug.LogError("Remaining Tickets: " + arenaInfo.AvatarName);
-            Debug.LogError("Remaining Tickets: " + arenaInfo.DailyChallengeCount);
+            // Debug.LogError("Remaining Tickets: " + arenaInfo.DailyChallengeCount);
 
-            for (int i = 0; i < arenaInfo.DailyChallengeCount; i++)
+            for (int i = 0; i < 5; i++)
             {
                 Context.OnClickChallenge.OnNext(this);
                 _onClickChallenge.OnNext(this);
