@@ -221,7 +221,9 @@ namespace Nekoyume.UI.Scroller
             challengeCountTextContainer.SetActive(_isCurrentUser);
             challengeButton.gameObject.SetActive(!_isCurrentUser);
             // [TEEN Code Block Start]
-            maxChallengeButton.gameObject.SetActive(!_isCurrentUser);
+            if (maxChallengeButton != null) {
+                maxChallengeButton.gameObject.SetActive(!_isCurrentUser);
+            }
             // [TEEN Code Block End]
 
             if (_isCurrentUser)
@@ -249,7 +251,9 @@ namespace Nekoyume.UI.Scroller
                 {
                     challengeButton.SetConditionalState(true);
                     // [TEEN Code Block Start]
-                    maxChallengeButton.SetSubmittable(true);
+                    if (maxChallengeButton != null) {
+                        maxChallengeButton.SetSubmittable(true);
+                    }
                     // [TEEN Code Block End]
                 }
                 else
@@ -257,7 +261,9 @@ namespace Nekoyume.UI.Scroller
                     challengeButton.SetConditionalState(itemData.currentAvatarArenaInfo.DailyChallengeCount > 0);
                     
                     // [TEEN Code Block Start]
-                    maxChallengeButton.SetSubmittable(itemData.currentAvatarArenaInfo.DailyChallengeCount > 0);
+                    if (maxChallengeButton != null) {
+                        maxChallengeButton.SetSubmittable(itemData.currentAvatarArenaInfo.DailyChallengeCount > 0);
+                    }
                     // [TEEN Code Block End]
                 }
             }
