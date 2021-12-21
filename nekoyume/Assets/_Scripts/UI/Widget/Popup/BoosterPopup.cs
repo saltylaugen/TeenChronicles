@@ -38,6 +38,20 @@ namespace Nekoyume.UI
         [SerializeField]
         private Button boostMinusButton;
 
+        // [TEN Code Block Start]
+        [SerializeField]
+        private Slider repeatSlider;
+
+        [SerializeField]
+        private TMP_Text repeatCountText;
+
+        [SerializeField]
+        private Button repeatPlusButton;
+
+        [SerializeField]
+        private Button repeatMinusButton;
+        // [TEN Code Block End]
+
         private Stage _stage;
         private Player _player;
         private List<Costume> _costumes;
@@ -56,6 +70,11 @@ namespace Nekoyume.UI
             submitButton.OnClickAsObservable().Subscribe(_ => BoostQuest()).AddTo(gameObject);
             boostPlusButton.OnClickAsObservable().Subscribe(_ => apSlider.value++);
             boostMinusButton.OnClickAsObservable().Subscribe(_ => apSlider.value--);
+
+            // [TEN Code Block Start]
+            repeatPlusButton.OnClickAsObservable().Subscribe(_ => repeatSlider.value++);
+            repeatMinusButton.OnClickAsObservable().Subscribe(_ => repeatSlider.value--);
+            // [TEN Code Block End]
         }
 
         public void Show(
@@ -87,6 +106,11 @@ namespace Nekoyume.UI
                 var costOfStage = GetCostOfStage();
                 boostCountText.text = value.ToString();
                 needAPText.text = (costOfStage * value).ToString();
+
+                // [TEN Code Block Start]
+                var actionPoint = Game.Game.instance.States.CurrentAvatarState.actionPoint;
+                repeatSlider.maxValue = (int) Mathf.Floor(actionPoint / (costOfStage * value));
+                // [TEN Code Block End]
             });
 
             var cost = GetCostOfStage();
@@ -98,6 +122,18 @@ namespace Nekoyume.UI
                 actionPoint / cost >= maxCount ? maxCount : actionPoint / cost;
             boostCountText.text = apSlider.value.ToString();
             needAPText.text = (cost * apSlider.value).ToString();
+
+            // [TEN Code Block Start]
+            repeatSlider.onValueChanged.AddListener(value =>
+            {
+                // var costOfStage = GetCostOfStage();
+                // boostCountText.text = value.ToString();
+                // needAPText.text = (costOfStage * value).ToString();
+                repeatCountText.text = repeatSlider.value.ToString();
+            });
+            repeatSlider.value = 1;
+            // [TEN Code Block End]
+
             base.Show();
         }
 
