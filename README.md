@@ -1,9 +1,9 @@
 Ten Chronicles
 ===============
-Forked by [NineChronicles]: https://github.com/planetarium/NineChronicles
+Forked by [NineChronicles](https://github.com/planetarium/NineChronicles)
 
 # What is TenChronicles
-It is an open source project to add more convenience features to the Nine Chronicle client. (Like [PANDORA BOX]: https://github.com/osamadeep/NineChronicles-PandoraBox)
+It is an open source project to add more convenience features to the Nine Chronicle client. (Like [PANDORA BOX](https://github.com/osamadeep/NineChronicles-PandoraBox))
 
 It's a project I make because I want to use it more comfortably, so I may or may not update it frequently. If you want, please open pr and participate in the project.
 
