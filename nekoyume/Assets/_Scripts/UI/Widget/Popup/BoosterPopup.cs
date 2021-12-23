@@ -99,6 +99,10 @@ namespace Nekoyume.UI
                 var costOfStage = GetCostOfStage();
                 apSlider.maxValue = value / costOfStage >= maxCount ? maxCount : value / costOfStage;
                 ownAPText.text = value.ToString();
+
+                // [TEN Code Block Start]
+                repeatSlider.maxValue = (int) Mathf.Floor(value / (costOfStage * apSlider.value));
+                // [TEN Code Block End]
             }).AddTo(gameObject);
 
             apSlider.onValueChanged.AddListener(value =>
@@ -126,12 +130,11 @@ namespace Nekoyume.UI
             // [TEN Code Block Start]
             repeatSlider.onValueChanged.AddListener(value =>
             {
-                // var costOfStage = GetCostOfStage();
-                // boostCountText.text = value.ToString();
-                // needAPText.text = (costOfStage * value).ToString();
                 repeatCountText.text = repeatSlider.value.ToString();
             });
+            
             repeatSlider.value = 1;
+            repeatCountText.text = "1";
             // [TEN Code Block End]
 
             base.Show();
@@ -141,6 +144,10 @@ namespace Nekoyume.UI
         {
             base.Close(ignoreCloseAnimation);
             apSlider.onValueChanged.RemoveAllListeners();
+            
+            // [TEN Code Block Start]
+            repeatSlider.onValueChanged.RemoveAllListeners();
+            // [TEN Code Block End]
         }
 
         private void BoostQuest()
@@ -158,25 +165,35 @@ namespace Nekoyume.UI
 
             if (_stageId >= GameConfig.MimisbrunnrStartStageId)
             {
-                Game.Game.instance.ActionManager.MimisbrunnrBattle(
-                    _costumes,
-                    _equipments,
-                    _consumables,
-                    _worldId,
-                    _stageId,
-                    (int)apSlider.value
-                ).Subscribe();
+                // [TEN Code Block Start]
+                for (int i = 0; i < (int) repeatSlider.value; i++)
+                {
+                    Game.Game.instance.ActionManager.MimisbrunnrBattle(
+                        _costumes,
+                        _equipments,
+                        _consumables,
+                        _worldId,
+                        _stageId,
+                        (int)apSlider.value
+                    ).Subscribe();
+                }
+                // [TEN Code Block End]
             }
             else
             {
-                Game.Game.instance.ActionManager.HackAndSlash(
-                    _costumes,
-                    _equipments,
-                    _consumables,
-                    _worldId,
-                    _stageId,
-                    (int)apSlider.value
-                ).Subscribe();
+                // [TEN Code Block Start]
+                for (int i = 0; i < (int) repeatSlider.value; i++)
+                {
+                    Game.Game.instance.ActionManager.HackAndSlash(
+                        _costumes,
+                        _equipments,
+                        _consumables,
+                        _worldId,
+                        _stageId,
+                        (int)apSlider.value
+                    ).Subscribe();
+                }
+                // [TEN Code Block End]
             }
         }
 
