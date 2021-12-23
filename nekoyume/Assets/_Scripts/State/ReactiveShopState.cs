@@ -297,6 +297,21 @@ namespace Nekoyume.State
                         digests.OrderByDescending(digest => digest.Price).ToList(),
                         shopItemsPerPage)
                 },
+                // [TEN Code Block Start]
+                // 판도라박스의 기능입니다.
+                {
+                    ShopSortFilter.Time,
+                    GetGroupedShopItemsByPage(
+                        digests.OrderByDescending(digest => digest.ExpiredBlockIndex).ToList(),
+                        shopItemsPerPage)
+                },
+                {
+                    ShopSortFilter.Level,
+                    GetGroupedShopItemsByPage(
+                        digests.OrderByDescending(digest => digest.Level).ToList(),
+                        shopItemsPerPage)
+                },
+                // [TEN Code Block End]
             };
         }
 
