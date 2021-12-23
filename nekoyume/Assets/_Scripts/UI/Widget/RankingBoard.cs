@@ -476,7 +476,7 @@ namespace Nekoyume.UI
             var infos = state.GetArenaInfos(1, 3);
             if (States.Instance.CurrentAvatarState != null)
             {
-                // [TEEN Code Block Start]
+                // [TEN Code Block Start]
                 int upperListCount = 300;
                 int lowerListCount = 100;
 
@@ -488,7 +488,7 @@ namespace Nekoyume.UI
                     var address = state.OrderedArenaInfos.Last().AvatarAddress;
                     infos2 = state.GetArenaInfos(address, upperListCount, 0);
                 }
-                // [TEEN Code Block End]
+                // [TEN Code Block End]
 
                 infos.AddRange(infos2);
                 infos = infos.ToImmutableHashSet().OrderBy(tuple => tuple.rank).ToList();
