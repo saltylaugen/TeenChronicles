@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Collections.Generic;
 using Nekoyume.Helper;
 using Nekoyume.UI.Model;
@@ -36,7 +37,23 @@ namespace Nekoyume.UI.Module
             SetBg(1f);
             SetLevel(model.ItemBase.Value.Grade, model.Level.Value);
             priceGroup.SetActive(true);
-            priceText.text = model.Price.Value.GetQuantityString();
+
+            // [TEN Code Block Start]
+            if (model.Count.Value > 1) {
+                decimal price = 0;
+                if (decimal.TryParse(model.Price.Value.GetQuantityString(), NumberStyles.AllowDecimalPoint,
+                    CultureInfo.InvariantCulture, out var result))
+                {
+                    price = result;
+                }
+                var unitPrice = System.Math.Round(price / model.Count.Value, 7);
+
+                priceText.text = $"{model.Price.Value.GetQuantityString()}({unitPrice})";
+            } else {
+                priceText.text = model.Price.Value.GetQuantityString();
+            }
+            // [TEN Code Block END]
+
             Model.View = this;
 
             if (expired)
