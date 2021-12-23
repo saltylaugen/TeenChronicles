@@ -10,6 +10,7 @@ It's a project I make because I want to use it more comfortably, so I may or may
 ## Features
 - arena max func
 - boost repeat func
+- shop itme unit price func
 
 If you would like to buy coffee so I can update more often, please send NCG here<br>
 0xf392d97E4D1757070Fd5b4dB9cdB9bD024F2c00e<br>
