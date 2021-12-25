@@ -186,9 +186,25 @@ namespace Nekoyume.UI
             var statType = itemOptionInfo.MainStat.type;
             var statValueString = statType.ValueToString(itemOptionInfo.MainStat.baseValue);
 
+            // [TEN Code Block Start]
+            var mainStat = $"{statType} {statValueString}";
+            var totalExtraStat = "Result: ";
+
+            for (var i = 0; i < itemOptionInfo.StatOptions.Count; i++)
+            {
+                totalExtraStat += $"{itemOptionInfo.StatOptions[i].type} ";
+                totalExtraStat += $"{itemOptionInfo.StatOptions[i].type.ValueToString(itemOptionInfo.StatOptions[i].value)}";
+
+                if (i != itemOptionInfo.StatOptions.Count - 1) {
+                    totalExtraStat += ", ";
+                }
+            }
+
             information.MainStatView.UpdateView(
-                $"{statType} {statValueString}",
-                string.Empty);
+                $"{mainStat}",
+                string.Empty,
+                totalExtraStat);
+            // [TEN Code Block End]
 
             var statOptionRows = ItemOptionHelper.GetStatOptionRows(
                 resultModel.subRecipeId.Value,
@@ -233,6 +249,10 @@ namespace Nekoyume.UI
                 }
 
                 var (skillName, _, _) = itemOptionInfo.SkillOptions[i];
+                // [TEN Code Block Start]
+                skillName += $" = {itemOptionInfo.SkillOptions[i].power} [{itemOptionInfo.SkillOptions[i].chance}%]";
+                // [TEN Code Block End]
+                
                 optionView.UpdateView(skillName, string.Empty);
                 optionView.Show();
             }
@@ -263,7 +283,10 @@ namespace Nekoyume.UI
                 return;
             }
 
-            var format = "{0} +({1:N0}% - {2:N0}%)";
+            // [TEN Code Block Start]
+            var format = "{0} +({1:N0}% - {2:N0}%) = <color=green>{3:N0}</color>";
+            // [TEN Code Block End]
+
             if (row.BaseStatGrowthMin == 0 && row.BaseStatGrowthMax == 0)
             {
                 information.MainStatView.Hide();
@@ -275,7 +298,10 @@ namespace Nekoyume.UI
                         format,
                         itemOptionInfo.MainStat.type,
                         row.BaseStatGrowthMin.NormalizeFromTenThousandths() * 100,
-                        row.BaseStatGrowthMax.NormalizeFromTenThousandths() * 100),
+                        row.BaseStatGrowthMax.NormalizeFromTenThousandths() * 100,
+                        // [TEN Code Block Start]
+                        itemOptionInfo.MainStat.type.ValueToString(itemOptionInfo.MainStat.totalValue)),
+                        // [TEN Code Block End]
                     string.Empty);
                 information.MainStatView.Show();
             }
@@ -295,12 +321,17 @@ namespace Nekoyume.UI
                     format,
                     type,
                     row.ExtraStatGrowthMin.NormalizeFromTenThousandths() * 100,
-                    row.ExtraStatGrowthMax.NormalizeFromTenThousandths() * 100);
+                    row.ExtraStatGrowthMax.NormalizeFromTenThousandths() * 100,
+                    // [TEN Code Block Start]
+                    type.ValueToString(itemOptionInfo.StatOptions[i].value));
+                    // [TEN Code Block End]
                 optionView.UpdateView(text, string.Empty, count);
                 optionView.Show();
             }
 
-            format = "{0} +({1:N0}% - {2:N0}%) / ({3:N0}% - {4:N0}%)";
+            // [TEN Code Block Start]
+            format = "{0} +({1:N0}% - {2:N0}%) / ({3:N0}% - {4:N0}%) = <color=green>{5}</color>";
+            // [TEN Code Block End]
             for (var i = 0; i < information.SkillOptions.Count; i++)
             {
                 var optionView = information.SkillOptions[i];
@@ -319,7 +350,10 @@ namespace Nekoyume.UI
                     row.ExtraSkillDamageGrowthMin.NormalizeFromTenThousandths() * 100,
                     row.ExtraSkillDamageGrowthMax.NormalizeFromTenThousandths() * 100,
                     row.ExtraSkillChanceGrowthMin.NormalizeFromTenThousandths() * 100,
-                    row.ExtraSkillChanceGrowthMax.NormalizeFromTenThousandths() * 100);
+                    row.ExtraSkillChanceGrowthMax.NormalizeFromTenThousandths() * 100,
+                    // [TEN Code Block Start]
+                    $"{itemOptionInfo.SkillOptions[i].power} [{itemOptionInfo.SkillOptions[i].chance}%]");
+                    // [TEN Code Block End]
                 optionView.UpdateView(text, string.Empty);
                 optionView.Show();
             }

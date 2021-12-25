@@ -13,6 +13,11 @@ namespace Nekoyume.UI.Module
         [SerializeField]
         private TextMeshProUGUI _rightText;
 
+        // [TEN Code Block Start]
+        [SerializeField]
+        private TextMeshProUGUI _resultText = null;
+        // [TEN Code Block End]
+
         [SerializeField]
         protected Animator animator;
 
@@ -56,6 +61,17 @@ namespace Nekoyume.UI.Module
 
             IsEmpty = string.IsNullOrEmpty(leftText) && string.IsNullOrEmpty(rightText);
         }
+
+        // [TEN Code Block Start]
+        public void UpdateView(string leftText, string rightText, string resultText)
+        {
+            if (_resultText != null) {
+                _resultText.text = resultText;
+            }
+
+            UpdateView(leftText, rightText);
+        }
+        // [TEN Code Block End]
 
         public void UpdateViewAsTotalAndPlusStat(StatType type, int totalValue, int plusValue) =>
             UpdateView(
