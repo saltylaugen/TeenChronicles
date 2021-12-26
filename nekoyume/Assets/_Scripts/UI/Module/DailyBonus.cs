@@ -50,6 +50,10 @@ namespace Nekoyume.UI.Module
         private long _currentBlockIndex;
         private long _rewardReceivedBlockIndex;
         private bool _isFull;
+        // [TEN Code Block Start]
+        private bool _isAutoRewardTrying = false;
+        private int _autoRewardRetryCount = 0;
+        // [TEN Code Block End]
 
         private static readonly int IsFull = Animator.StringToHash("IsFull");
         private static readonly int GetReward = Animator.StringToHash("GetReward");
@@ -143,6 +147,13 @@ namespace Nekoyume.UI.Module
             hasNotificationImage.enabled = _isFull && States.Instance.CurrentAvatarState?.actionPoint == 0;
 
             animator.SetBool(IsFull, _isFull);
+            
+            // [TEN Code Block Start]
+            if (_isFull && States.Instance.CurrentAvatarState?.actionPoint == 0 && !_isAutoRewardTrying)
+            {
+                StartCoroutine(AutoCollect());
+            }
+            // [TEN Code Block End]
         }
 
         public void ShowTooltip()
@@ -155,6 +166,32 @@ namespace Nekoyume.UI.Module
         {
             Widget.Find<VanilaTooltip>().Close();
         }
+
+        // [TEN Code Block Start]
+        IEnumerator AutoCollect()
+        {   
+            _isAutoRewardTrying = true;
+            RequestDailyReward();
+
+            yield return new WaitForSeconds(60);
+            _isAutoRewardTrying = false;
+
+            if (_autoRewardRetryCount <= 5)
+            {
+                if (_isFull && States.Instance.CurrentAvatarState?.actionPoint == 0)
+                {
+                    _autoRewardRetryCount++;
+                    StartCoroutine(AutoCollect());
+                }
+            } else
+            {
+                OneLineSystem.Push(
+                    MailType.System,
+                    "Auto DailyReward FAIL",
+                    NotificationCell.NotificationType.Information);
+            }
+        }
+        // [TEN Code Block End]
 
         public void RequestDailyReward()
         {
@@ -205,6 +242,9 @@ namespace Nekoyume.UI.Module
                 GameConfigStateSubject.ActionPointState.Remove(address);
             }
             GameConfigStateSubject.ActionPointState.Add(address, true);
+            // [TEN Code Block Start]
+            _autoRewardRetryCount = 0;
+            // [TEN Code Block End]
 
             StartCoroutine(CoGetDailyRewardAnimation());
         }
