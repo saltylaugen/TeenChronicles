@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Nekoyume.BlockChain;
 using Nekoyume.Game;
@@ -158,14 +159,42 @@ namespace Nekoyume.UI
             Find<WorldMap>().Close(true);
             Find<StageInformation>().Close(true);
             Find<LoadingScreen>().Show();
-            Close();
 
             _stage.IsInStage = true;
             _stage.IsShowHud = true;
+              
+            // [TEN Code Block Start]
+            // if (_stageId >= GameConfig.MimisbrunnrStartStageId)
+            // {
+            //     Game.Game.instance.ActionManager.MimisbrunnrBattle(
+            //         _costumes,
+            //         _equipments,
+            //         _consumables,
+            //         _worldId,
+            //         _stageId,
+            //         (int)apSlider.value
+            //     ).Subscribe();
+            // }
+            // else
+            // {
+            //     Game.Game.instance.ActionManager.HackAndSlash(
+            //         _costumes,
+            //         _equipments,
+            //         _consumables,
+            //         _worldId,
+            //         _stageId,
+            //         (int)apSlider.value
+            //     ).Subscribe();
+            // }
+            StartCoroutine(BulkHackAndSlash());
+            // [TEN Code Block End]
+        }
 
+        // [TEN Code Block Start]
+        private IEnumerator BulkHackAndSlash()
+        {
             if (_stageId >= GameConfig.MimisbrunnrStartStageId)
             {
-                // [TEN Code Block Start]
                 for (int i = 0; i < (int) repeatSlider.value; i++)
                 {
                     Game.Game.instance.ActionManager.MimisbrunnrBattle(
@@ -176,12 +205,11 @@ namespace Nekoyume.UI
                         _stageId,
                         (int)apSlider.value
                     ).Subscribe();
+                    yield return new WaitForSeconds(4f);
                 }
-                // [TEN Code Block End]
             }
             else
             {
-                // [TEN Code Block Start]
                 for (int i = 0; i < (int) repeatSlider.value; i++)
                 {
                     Game.Game.instance.ActionManager.HackAndSlash(
@@ -192,10 +220,12 @@ namespace Nekoyume.UI
                         _stageId,
                         (int)apSlider.value
                     ).Subscribe();
+                    yield return new WaitForSeconds(4f);
                 }
-                // [TEN Code Block End]
             }
+            Close();
         }
+        // [TEN Code Block End]
 
         private int GetCostOfStage()
         {
