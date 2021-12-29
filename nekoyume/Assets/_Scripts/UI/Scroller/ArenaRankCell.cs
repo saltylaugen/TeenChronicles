@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using Nekoyume.Battle;
 using Nekoyume.Game.Controller;
 using Nekoyume.Helper;
@@ -131,7 +133,7 @@ namespace Nekoyume.UI.Scroller
                     .Subscribe(_ =>
                     {
                         AudioController.PlayClick();
-                        ChallangeRemainingTickets();
+                        StartCoroutine(ChallangeRemainingTickets());
                     })
                     .AddTo(gameObject);
             }
@@ -151,17 +153,16 @@ namespace Nekoyume.UI.Scroller
         }
         
         // [TEN Code Block Start]
-        public void ChallangeRemainingTickets()
+        IEnumerator ChallangeRemainingTickets()
         {
-            // var currentAddress = States.Instance.CurrentAvatarState?.address;
-            // var arenaInfo = States.Instance.WeeklyArenaState.GetArenaInfo(currentAddress.Value);
+            var currentAddress = States.Instance.CurrentAvatarState?.address;
+            var arenaInfo = States.Instance.WeeklyArenaState.GetArenaInfo(currentAddress.Value);
 
-            // Debug.LogError("Remaining Tickets: " + arenaInfo.DailyChallengeCount);
-
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < arenaInfo.DailyChallengeCount; i++)
             {
                 Context.OnClickChallenge.OnNext(this);
                 _onClickChallenge.OnNext(this);
+                yield return new WaitForSeconds(3);
             }
         }
         // [TEN Code Block End]
