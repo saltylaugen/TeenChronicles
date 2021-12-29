@@ -52,7 +52,6 @@ namespace Nekoyume.UI.Module
         private bool _isFull;
         // [TEN Code Block Start]
         private bool _isAutoRewardTrying = false;
-        private int _autoRewardRetryCount = 0;
         // [TEN Code Block End]
 
         private static readonly int IsFull = Animator.StringToHash("IsFull");
@@ -132,6 +131,16 @@ namespace Nekoyume.UI.Module
                 Math.Max(0, _currentBlockIndex - _rewardReceivedBlockIndex));
 
             sliderAnimator.SetValue(endValue, useAnimation);
+            
+            // [TEN Code Block Start]
+            if (_rewardReceivedBlockIndex > 0 && 
+                Math.Max(0, _currentBlockIndex - _rewardReceivedBlockIndex) > gameConfigState.DailyRewardInterval &&
+                States.Instance.CurrentAvatarState?.actionPoint == 0 &&
+                !_isAutoRewardTrying)
+            {
+                StartCoroutine(AutoCollect());
+            }
+            // [TEN Code Block End]
         }
 
         private void OnSliderChange()
@@ -147,13 +156,6 @@ namespace Nekoyume.UI.Module
             hasNotificationImage.enabled = _isFull && States.Instance.CurrentAvatarState?.actionPoint == 0;
 
             animator.SetBool(IsFull, _isFull);
-            
-            // [TEN Code Block Start]
-            if (_isFull && States.Instance.CurrentAvatarState?.actionPoint == 0 && !_isAutoRewardTrying)
-            {
-                StartCoroutine(AutoCollect());
-            }
-            // [TEN Code Block End]
         }
 
         public void ShowTooltip()
@@ -170,26 +172,42 @@ namespace Nekoyume.UI.Module
         // [TEN Code Block Start]
         IEnumerator AutoCollect()
         {   
+            var success = false;
+
             _isAutoRewardTrying = true;
-            RequestDailyReward();
-
-            yield return new WaitForSeconds(60);
-            _isAutoRewardTrying = false;
-
-            if (_autoRewardRetryCount <= 5)
+            for (int i = 0; i < 5; i++)
             {
-                if (_isFull && States.Instance.CurrentAvatarState?.actionPoint == 0)
+                RequestDailyReward();
+
+                // Success Check
+                for (int j = 0; j < 30; j++)
                 {
-                    _autoRewardRetryCount++;
-                    StartCoroutine(AutoCollect());
+                    var gameConfigState = States.Instance.GameConfigState;
+                    if (Math.Max(0, _currentBlockIndex - _rewardReceivedBlockIndex) < gameConfigState.DailyRewardInterval)
+                    {   
+                        success = true;
+                        break;
+                    }
+                    yield return new WaitForSeconds(3);
                 }
-            } else
-            {
+
+                var keyward = "FAIL, Retry...";
+                if (success)
+                {
+                    keyward = "SUCCESS";
+                }
+
                 OneLineSystem.Push(
                     MailType.System,
-                    "Auto DailyReward FAIL",
+                    $"Auto DailyReward {keyward}",
                     NotificationCell.NotificationType.Information);
+
+                if (success)
+                {
+                    break;
+                }
             }
+            _isAutoRewardTrying = false;
         }
         // [TEN Code Block End]
 
@@ -242,9 +260,6 @@ namespace Nekoyume.UI.Module
                 GameConfigStateSubject.ActionPointState.Remove(address);
             }
             GameConfigStateSubject.ActionPointState.Add(address, true);
-            // [TEN Code Block Start]
-            _autoRewardRetryCount = 0;
-            // [TEN Code Block End]
 
             StartCoroutine(CoGetDailyRewardAnimation());
         }
