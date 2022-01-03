@@ -72,6 +72,11 @@ namespace Nekoyume.UI
 
         [SerializeField]
         private GameObject skipButton = null;
+        
+        // [TEN Code Block Start]
+        [SerializeField]
+        private GameObject skipForeverButton = null;
+        // [TEN Code Block End]
 
         public SynopsisScene[] scripts;
         [Tooltip("대사가 사라질때 걸리는 시간")]
@@ -346,6 +351,7 @@ namespace Nekoyume.UI
             AudioController.instance.PlayMusic(AudioController.MusicCode.Prologue);
             var skipPrologue = States.Instance.AgentState.avatarAddresses.Any();
             skipButton.SetActive(skipPrologue);
+            skipForeverButton.SetActive(skipPrologue);
             StartCoroutine(StartSynopsis(skipPrologue));
         }
 
@@ -384,6 +390,14 @@ namespace Nekoyume.UI
             skipAll = true;
             Skip();
         }
+        // [TEN Code Block Start]
+        public void SkipAllForever()
+        {
+            skipAll = true;
+            Skip();
+            PlayerPrefs.SetInt("__10C__SKIP_FOREVER", 1);
+        }
+        // [TEN Code Block End]
         private void EnterLogin()
         {
             Find<Login>().Show();

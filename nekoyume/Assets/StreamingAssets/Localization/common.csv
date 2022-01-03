@@ -1619,3 +1619,4 @@ UI_RECIPE_LOCK_GUIDE,"If you clear the stage more, the conditions will be reveal
 UI_NOT_ENOUGH_HOURGLASS,Insufficient hourglass.,모래시계가 부족합니다.,,,,,,,,,,,,,,,,
 UI_RANKING_CATEGORY_ERROR,Error occured while loading category.,카테고리를 불러오는 도중 오류가 발생했습니다.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,Error occured while loading category.,
 UI_TIME,Time,시간,,,,,,,,,,,,,,,,
+UI_SKIP_FOREVER,Skip Forever,다시보지않기,,,,,,,,,,,,,,,,

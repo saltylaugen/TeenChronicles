@@ -43,7 +43,11 @@ namespace Nekoyume.UI
         public override async void Close(bool ignoreCloseAnimation = false)
         {
             videoPlayer.Stop();
-            if (!GameConfig.IsEditor)
+            // [TEN Code Block Start]
+            var isSkipForever = System.Convert.ToBoolean(PlayerPrefs.GetInt("__10C__SKIP_FOREVER", 0));
+
+            if (!GameConfig.IsEditor && !isSkipForever)
+            // [TEN Code Block End]
             {
                 Find<Synopsis>().Show();
             }
