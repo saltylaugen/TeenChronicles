@@ -153,7 +153,9 @@ namespace Nekoyume.UI
 
         private void BoostQuest()
         {
-            _player.StartRun();
+            // [TEN Code Block Start]
+            // _player.StartRun();
+            // [TEN Code Block End]
             ActionCamera.instance.ChaseX(_player.transform);
 
             Find<WorldMap>().Close(true);
@@ -193,9 +195,15 @@ namespace Nekoyume.UI
         // [TEN Code Block Start]
         private IEnumerator BulkHackAndSlash()
         {
-            if (_stageId >= GameConfig.MimisbrunnrStartStageId)
+            var repeatCount = (int) repeatSlider.value;
+            for (int i = 0; i < repeatCount; i++)
             {
-                for (int i = 0; i < (int) repeatSlider.value; i++)
+                if (i == repeatCount - 1)
+                {
+                    _player.StartRun();
+                }
+
+                if (_stageId >= GameConfig.MimisbrunnrStartStageId)
                 {
                     Game.Game.instance.ActionManager.MimisbrunnrBattle(
                         _costumes,
@@ -205,12 +213,8 @@ namespace Nekoyume.UI
                         _stageId,
                         (int)apSlider.value
                     ).Subscribe();
-                    yield return new WaitForSeconds(4f);
                 }
-            }
-            else
-            {
-                for (int i = 0; i < (int) repeatSlider.value; i++)
+                else
                 {
                     Game.Game.instance.ActionManager.HackAndSlash(
                         _costumes,
@@ -220,6 +224,10 @@ namespace Nekoyume.UI
                         _stageId,
                         (int)apSlider.value
                     ).Subscribe();
+                }
+
+                if (i != repeatCount - 1)
+                {
                     yield return new WaitForSeconds(4f);
                 }
             }
