@@ -191,7 +191,7 @@ namespace Nekoyume.UI
                 .AddTo(gameObject);
 
             boostPopupButton.OnClickAsObservable()
-                .Where(_ => EnoughToPlay)
+                .Where(_ => EnoughToPlay && !_stage.IsInStage)
                 .Subscribe(_ =>
                 {
                     var costumes = _player.Costumes;
@@ -315,7 +315,7 @@ namespace Nekoyume.UI
             _stageId.Value = worldMap.SelectedStageId;
 
             ReactiveAvatarState.ActionPoint
-                .Subscribe(_ => ReadyToQuest(EnoughToPlay))
+                .Subscribe(_ => ReadyToQuest())
                 .AddTo(_disposables);
             _tempStats = _player.Model.Stats.Clone() as CharacterStats;
             inventory.SharedModel.UpdateEquipmentNotification();
@@ -487,11 +487,12 @@ namespace Nekoyume.UI
             gameObject.SetActive(false);
         }
 
-        private void ReadyToQuest(bool ready)
+        private void ReadyToQuest()
         {
+            questButton.UpdateObjects();
             foreach (var particle in particles)
             {
-                if (ready)
+                if (questButton.IsSubmittable)
                 {
                     particle.Play();
                 }
@@ -519,14 +520,12 @@ namespace Nekoyume.UI
         {
             if (_stage.IsInStage)
             {
-                questButton.Interactable = false;
                 return;
             }
 
             _stage.IsInStage = true;
             _stage.IsShowHud = true;
             StartCoroutine(CoQuestClick(repeat));
-            questButton.Interactable = false;
             repeatToggle.interactable = false;
             coverToBlockClick.SetActive(true);
         }

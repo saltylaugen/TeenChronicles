@@ -125,7 +125,11 @@ namespace Nekoyume.BlockChain
                 .First()
                 .ObserveOnMainThread()
                 .Timeout(ActionTimeout)
-                .DoOnError(e => HandleException(action.Id, e))
+                .DoOnError(e =>
+                {
+                    Game.Game.instance.BackToNest();
+                    HandleException(action.Id, e);
+                })
                 .Finally(() =>
                 {
                     var agentAddress = States.Instance.AgentState.address;
@@ -161,7 +165,6 @@ namespace Nekoyume.BlockChain
                 worldId = worldId,
                 stageId = stageId,
                 avatarAddress = avatarAddress,
-                rankingMapAddress = States.Instance.CurrentAvatarState.RankingMapAddress,
                 playCount = playCount,
             };
             action.PayCost(Game.Game.instance.Agent, States.Instance, TableSheets.Instance);
@@ -182,7 +185,7 @@ namespace Nekoyume.BlockChain
                     }
                     catch (Exception e2)
                     {
-                        Game.Game.BackToMain(false, e2);
+                        Game.Game.BackToMain(false, e2).Forget();
                     }
                 });
         }
@@ -224,7 +227,6 @@ namespace Nekoyume.BlockChain
                 stageId = stageId,
                 playCount = playCount,
                 avatarAddress = avatarAddress,
-                rankingMapAddress = States.Instance.CurrentAvatarState.RankingMapAddress,
             };
             action.PayCost(Game.Game.instance.Agent, States.Instance, TableSheets.Instance);
             LocalLayerActions.Instance.Register(action.Id, action.PayCost, _agent.BlockIndex);
@@ -243,7 +245,7 @@ namespace Nekoyume.BlockChain
                     }
                     catch (Exception e2)
                     {
-                        Game.Game.BackToMain(false, e2);
+                        Game.Game.BackToMain(false, e2).Forget();
                     }
                 });
         }
@@ -312,6 +314,8 @@ namespace Nekoyume.BlockChain
                 itemSubType = itemSubType,
                 orderId = Guid.NewGuid(),
             };
+
+            Debug.Log($"action: {action.orderId}");
             action.PayCost(Game.Game.instance.Agent, States.Instance, TableSheets.Instance);
             LocalLayerActions.Instance.Register(action.Id, action.PayCost, _agent.BlockIndex);
             ProcessAction(action);
@@ -483,16 +487,16 @@ namespace Nekoyume.BlockChain
                     }
                     catch (Exception inner)
                     {
-                        Game.Game.BackToMain(false, inner);
+                        Game.Game.BackToMain(false, inner).Forget();
                     }
+
                 });
         }
 
         public IObservable<ActionBase.ActionEvaluation<RankingBattle>> RankingBattle(
             Address enemyAddress,
             List<Guid> costumeIds,
-            List<Guid> equipmentIds,
-            List<Guid> consumableIds
+            List<Guid> equipmentIds
         )
         {
             if (!ArenaHelper.TryGetThisWeekAddress(out var weeklyArenaAddress))
@@ -508,7 +512,6 @@ namespace Nekoyume.BlockChain
                 weeklyArenaAddress = weeklyArenaAddress,
                 costumeIds = costumeIds,
                 equipmentIds = equipmentIds,
-                consumableIds = consumableIds
             };
             action.PayCost(Game.Game.instance.Agent, States.Instance, TableSheets.Instance);
             LocalLayerActions.Instance.Register(action.Id, action.PayCost, _agent.BlockIndex);
@@ -527,7 +530,7 @@ namespace Nekoyume.BlockChain
                     }
                     catch (Exception e2)
                     {
-                        Game.Game.BackToMain(false, e2);
+                        Game.Game.BackToMain(false, e2).Forget();
                     }
                 });
         }
@@ -683,7 +686,7 @@ namespace Nekoyume.BlockChain
                     }
                     catch (Exception e2)
                     {
-                        Game.Game.BackToMain(false, e2);
+                        Game.Game.BackToMain(false, e2).Forget();
                     }
                 });
         }

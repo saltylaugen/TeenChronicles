@@ -24,8 +24,6 @@ namespace Nekoyume.State
     {
         public static States Instance => Game.Game.instance.States;
 
-        public readonly Dictionary<Address, RankingMapState> RankingMapStates = new Dictionary<Address, RankingMapState>();
-
         public WeeklyArenaState WeeklyArenaState { get; private set; }
 
         public AgentState AgentState { get; private set; }
@@ -51,22 +49,6 @@ namespace Nekoyume.State
         }
 
         #region Setter
-
-        /// <summary>
-        /// 랭킹 상태를 할당한다.
-        /// </summary>
-        /// <param name="state"></param>
-        public void SetRankingMapStates(RankingMapState state)
-        {
-            if (state is null)
-            {
-                Debug.LogWarning($"[{nameof(States)}.{nameof(SetRankingMapStates)}] {nameof(state)} is null.");
-                return;
-            }
-
-            RankingMapStates[state.address] = state;
-            RankingMapStatesSubject.OnNext(RankingMapStates);
-        }
 
         public void SetWeeklyArenaState(WeeklyArenaState state)
         {
@@ -280,6 +262,8 @@ namespace Nekoyume.State
 
             if (isNew)
             {
+                // notee: commit c1b7f0dc2e8fd922556b83f0b9b2d2d2b2626603 에서 코드 수정이 생기면서
+                // SetCombinationSlotStatesAsync()가 호출이 안되는 이슈가 있어서 revert했습니다. 재수정 필요
                 _combinationSlotStates.Clear();
                 await UniTask.Run(async () =>
                 {

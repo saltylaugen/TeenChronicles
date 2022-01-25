@@ -237,8 +237,6 @@ namespace Nekoyume.UI
         private void SubscribeQuestList(QuestList questList)
         {
             var quest = questList?
-                .EnumerateLazyQuestStates()
-                .Select(l => l.State)
                 .OfType<CombinationEquipmentQuest>()
                 .Where(x => !x.Complete)
                 .OrderBy(x => x.StageId)
@@ -342,6 +340,11 @@ namespace Nekoyume.UI
 
         public void TutorialActionCloseCombination()
         {
+            if (!isActiveAndEnabled)
+            {
+                return;
+            }
+
             Close(true);
             Game.Event.OnRoomEnter.Invoke(true);
         }

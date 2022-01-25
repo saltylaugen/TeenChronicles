@@ -5,5 +5,9 @@ namespace Nekoyume.UI.Model
         Class = 0,
         CP = 1,
         Price = 2,
+        // [TEN Code Block Start]
+        Time = 3,
+        Level = 4,
+        // [TEN Code Block END]
     }
 }

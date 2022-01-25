@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Bencodex;
 using Bencodex.Types;
+using Cysharp.Threading.Tasks;
 using Grpc.Core;
 using Lib9c.Renderer;
 using Libplanet;
@@ -27,6 +28,7 @@ using Nekoyume.State;
 using Nekoyume.UI;
 using NineChronicles.RPC.Shared.Exceptions;
 using UnityEngine;
+using Channel = Grpc.Core.Channel;
 using Logger = Serilog.Core.Logger;
 using NCAction = Libplanet.Action.PolymorphicAction<Nekoyume.Action.ActionBase>;
 using NCTx = Libplanet.Tx.Transaction<Libplanet.Action.PolymorphicAction<Nekoyume.Action.ActionBase>>;
@@ -92,6 +94,8 @@ namespace Nekoyume.BlockChain
 
         public IObservable<(NCTx tx, List<NCAction> actions)> OnMakeTransaction => _onMakeTransactionSubject;
 
+        private readonly List<IDisposable> _disposables = new List<IDisposable>();
+
         public IEnumerator Initialize(
             CommandLineOptions options,
             PrivateKey privateKey,
@@ -131,18 +135,17 @@ namespace Nekoyume.BlockChain
             RegisterDisconnectEvent(_hub);
             StartCoroutine(CoTxProcessor());
             StartCoroutine(CoJoin(callback));
-            yield return null;
         }
 
         public IValue GetState(Address address)
         {
-            byte[] raw = _service.GetState(address.ToByteArray()).ResponseAsync.Result;
+            byte[] raw = _service.GetState(address.ToByteArray(), BlockTipHash.ToByteArray()).ResponseAsync.Result;
             return _codec.Decode(raw);
         }
 
         public async Task<IValue> GetStateAsync(Address address)
         {
-            byte[] raw = await _service.GetState(address.ToByteArray());
+            byte[] raw = await _service.GetState(address.ToByteArray(), BlockTipHash.ToByteArray());
             return _codec.Decode(raw);
         }
 
@@ -151,7 +154,8 @@ namespace Nekoyume.BlockChain
             // FIXME: `CurrencyExtension.Serialize()` should be changed to `Currency.Serialize()`.
             var result = _service.GetBalance(
                 address.ToByteArray(),
-                _codec.Encode(CurrencyExtensions.Serialize(currency))
+                _codec.Encode(CurrencyExtensions.Serialize(currency)),
+                BlockTipHash.ToByteArray()
             );
             byte[] raw = result.ResponseAsync.Result;
             var serialized = (Bencodex.Types.List) _codec.Decode(raw);
@@ -165,7 +169,8 @@ namespace Nekoyume.BlockChain
             // FIXME: `CurrencyExtension.Serialize()` should be changed to `Currency.Serialize()`.
             byte[] raw = await _service.GetBalance(
                 address.ToByteArray(),
-                _codec.Encode(CurrencyExtensions.Serialize(currency))
+                _codec.Encode(CurrencyExtensions.Serialize(currency)),
+                BlockTipHash.ToByteArray()
             );
             var serialized = (Bencodex.Types.List) _codec.Decode(raw);
             return FungibleAssetValue.FromRawValue(
@@ -175,7 +180,9 @@ namespace Nekoyume.BlockChain
 
         public async Task<Dictionary<Address, AvatarState>> GetAvatarStates(IEnumerable<Address> addressList)
         {
-            Dictionary<byte[], byte[]> raw =  await _service.GetAvatarStates(addressList.Select(a => a.ToByteArray()));
+            Dictionary<byte[], byte[]> raw =
+                await _service.GetAvatarStates(addressList.Select(a => a.ToByteArray()),
+                    BlockTipHash.ToByteArray());
             var result = new Dictionary<Address, AvatarState>();
             foreach (var kv in raw)
             {
@@ -186,7 +193,9 @@ namespace Nekoyume.BlockChain
 
         public async Task<Dictionary<Address, IValue>> GetStateBulk(IEnumerable<Address> addressList)
         {
-            Dictionary<byte[], byte[]> raw =  await _service.GetStateBulk(addressList.Select(a => a.ToByteArray()));
+            Dictionary<byte[], byte[]> raw =
+                await _service.GetStateBulk(addressList.Select(a => a.ToByteArray()),
+                    BlockTipHash.ToByteArray());
             var result = new Dictionary<Address, IValue>();
             foreach (var kv in raw)
             {
@@ -206,8 +215,28 @@ namespace Nekoyume.BlockChain
 
         #region Mono
 
+        private void Awake()
+        {
+            OnDisconnected
+                .Subscribe(_ => Analyzer.Instance.Track("Unity/RPC Disconnected"))
+                .AddTo(_disposables);
+            OnRetryStarted
+                .Subscribe(_ => Analyzer.Instance.Track("Unity/RPC Retry Connect Started"))
+                .AddTo(_disposables);
+            OnRetryEnded
+                .Subscribe(_ => Analyzer.Instance.Track("Unity/RPC Retry Connect Ended"))
+                .AddTo(_disposables);
+            OnPreloadStarted
+                .Subscribe(_ => Analyzer.Instance.Track("Unity/RPC Preload Started"))
+                .AddTo(_disposables);
+            OnPreloadEnded
+                .Subscribe(_ => Analyzer.Instance.Track("Unity/RPC Preload Ended"))
+                .AddTo(_disposables);
+        }
+
         private async void OnDestroy()
         {
+            _disposables.DisposeAllAndClear();
             _onMakeTransactionSubject.Dispose();
 
             BlockRenderHandler.Instance.Stop();
@@ -379,6 +408,8 @@ namespace Nekoyume.BlockChain
             BlockTipHash = new BlockHash(newTipBlock.Hash.ToByteArray());
             BlockTipHashSubject.OnNext(BlockTipHash);
             _lastTipChangedAt = DateTimeOffset.UtcNow;
+
+            Debug.Log($"[{nameof(RPCAgent)}] Render block: {BlockIndex}, {BlockTipHash.ToString()}");
             BlockRenderer.RenderBlock(null, null);
         }
 
@@ -449,6 +480,18 @@ namespace Nekoyume.BlockChain
 
         public void OnReorged(byte[] oldTip, byte[] newTip, byte[] branchpoint)
         {
+            var dict = (Bencodex.Types.Dictionary)_codec.Decode(newTip);
+            HashAlgorithmGetter hashAlgorithmGetter = Game.Game.instance.Agent.BlockPolicySource
+                .GetPolicy()
+                .GetHashAlgorithm;
+            Block<NCAction> newTipBlock = BlockMarshaler.UnmarshalBlock<NCAction>(hashAlgorithmGetter, dict);
+            BlockIndex = newTipBlock.Index;
+            BlockIndexSubject.OnNext(BlockIndex);
+            BlockTipHash = new BlockHash(newTipBlock.Hash.ToByteArray());
+            BlockTipHashSubject.OnNext(BlockTipHash);
+            _lastTipChangedAt = DateTimeOffset.UtcNow;
+
+            Debug.Log($"[{nameof(RPCAgent)}] Render reorg: {BlockIndex}, {BlockTipHash.ToString()}");
             BlockRenderer.RenderReorg(null, null, null);
         }
 
@@ -519,10 +562,9 @@ namespace Nekoyume.BlockChain
         }
 
         public bool TryGetTxId(Guid actionId, out TxId txId) =>
-            _transactions.TryGetValue(actionId, out txId) &&
-            IsTxStaged(txId);
+            _transactions.TryGetValue(actionId, out txId);
 
-        public bool IsTxStaged(TxId txId) =>
-            _service.IsTransactionStaged(txId.ToByteArray()).ResponseAsync.Result;
+        public async UniTask<bool> IsTxStagedAsync(TxId txId) =>
+            await _service.IsTransactionStaged(txId.ToByteArray()).ResponseAsync.AsUniTask();
     }
 }

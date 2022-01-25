@@ -50,6 +50,9 @@ namespace Nekoyume.UI.Module
         private long _currentBlockIndex;
         private long _rewardReceivedBlockIndex;
         private bool _isFull;
+        // [TEN Code Block Start]
+        private bool _isAutoRewardTrying = false;
+        // [TEN Code Block End]
 
         private static readonly int IsFull = Animator.StringToHash("IsFull");
         private static readonly int GetReward = Animator.StringToHash("GetReward");
@@ -128,6 +131,16 @@ namespace Nekoyume.UI.Module
                 Math.Max(0, _currentBlockIndex - _rewardReceivedBlockIndex));
 
             sliderAnimator.SetValue(endValue, useAnimation);
+            
+            // [TEN Code Block Start]
+            if (_rewardReceivedBlockIndex > 0 && 
+                Math.Max(0, _currentBlockIndex - _rewardReceivedBlockIndex) > gameConfigState.DailyRewardInterval &&
+                States.Instance.CurrentAvatarState?.actionPoint == 0 &&
+                !_isAutoRewardTrying)
+            {
+                StartCoroutine(AutoCollect());
+            }
+            // [TEN Code Block End]
         }
 
         private void OnSliderChange()
@@ -155,6 +168,48 @@ namespace Nekoyume.UI.Module
         {
             Widget.Find<VanilaTooltip>().Close();
         }
+
+        // [TEN Code Block Start]
+        IEnumerator AutoCollect()
+        {   
+            var success = false;
+
+            _isAutoRewardTrying = true;
+            for (int i = 0; i < 5; i++)
+            {
+                RequestDailyReward();
+
+                // Success Check
+                for (int j = 0; j < 30; j++)
+                {
+                    var gameConfigState = States.Instance.GameConfigState;
+                    if (Math.Max(0, _currentBlockIndex - _rewardReceivedBlockIndex) < gameConfigState.DailyRewardInterval)
+                    {   
+                        success = true;
+                        break;
+                    }
+                    yield return new WaitForSeconds(3);
+                }
+
+                var keyward = "FAIL, Retry...";
+                if (success)
+                {
+                    keyward = "SUCCESS";
+                }
+
+                OneLineSystem.Push(
+                    MailType.System,
+                    $"Auto DailyReward {keyward}",
+                    NotificationCell.NotificationType.Information);
+
+                if (success)
+                {
+                    break;
+                }
+            }
+            _isAutoRewardTrying = false;
+        }
+        // [TEN Code Block End]
 
         public void RequestDailyReward()
         {

@@ -156,7 +156,6 @@ namespace Nekoyume.UI.Scroller
                     notificationContent.messageText.text = _viewModel.message;
                     break;
                 case NotificationType.Alert:
-                    alertContent.iconImage.overrideSprite = iconSprite;
                     alertContent.messageText.text = _viewModel.message;
                     break;
             }
@@ -200,7 +199,7 @@ namespace Nekoyume.UI.Scroller
             var playing = true;
             while (playing)
             {
-                playing = tweeners.Any(tweener => tweener.IsPlaying);
+                playing = tweeners.Any(tweener => tweener.IsActive && tweener.IsPlaying);
                 yield return null;
             }
 

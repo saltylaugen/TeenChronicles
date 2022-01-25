@@ -1,10 +1,12 @@
 using System;
+using System.Globalization;
 using System.Collections.Generic;
 using Nekoyume.Helper;
-using Nekoyume.UI.Model;
+using Nekoyume.Model.Item;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using ShopItem = Nekoyume.UI.Model.ShopItem;
 
 namespace Nekoyume.UI.Module
 {
@@ -20,8 +22,6 @@ namespace Nekoyume.UI.Module
 
         private readonly List<IDisposable> _disposables = new List<IDisposable>();
         private long _expiredBlockIndex;
-
-        public Task<Nekoyume.Model.Item.ItemBase> ItemBaseLoadingTask { get; private set; } = null;
         private CancellationTokenSource _cancellationTokenSource = null;
 
         public override void SetData(ShopItem model)
@@ -36,7 +36,23 @@ namespace Nekoyume.UI.Module
             SetBg(1f);
             SetLevel(model.ItemBase.Value.Grade, model.Level.Value);
             priceGroup.SetActive(true);
-            priceText.text = model.Price.Value.GetQuantityString();
+
+            // [TEN Code Block Start]
+            if (model.Count.Value > 1) {
+                decimal price = 0;
+                if (decimal.TryParse(model.Price.Value.GetQuantityString(), NumberStyles.AllowDecimalPoint,
+                    CultureInfo.InvariantCulture, out var result))
+                {
+                    price = result;
+                }
+                var unitPrice = System.Math.Round(price / model.Count.Value, 7);
+
+                priceText.text = $"{model.Price.Value.GetQuantityString()}({unitPrice})";
+            } else {
+                priceText.text = model.Price.Value.GetQuantityString();
+            }
+            // [TEN Code Block END]
+
             Model.View = this;
 
             if (expired)
@@ -49,17 +65,6 @@ namespace Nekoyume.UI.Module
             }
 
             _cancellationTokenSource = new CancellationTokenSource();
-            ItemBaseLoadingTask = Task.Run(async () =>
-            {
-                var item = await Util.GetItemBaseByTradableId(model.TradableId.Value, model.ExpiredBlockIndex.Value);
-                return item;
-            }, _cancellationTokenSource.Token);
-
-            ItemBaseLoadingTask.ToObservable()
-                .ObserveOnMainThread()
-                .First()
-                .Subscribe(item => SetOptionTag(item))
-                .AddTo(_disposables);
         }
 
         public override void Clear()

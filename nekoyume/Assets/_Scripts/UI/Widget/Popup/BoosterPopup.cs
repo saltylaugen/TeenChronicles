@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Nekoyume.BlockChain;
 using Nekoyume.Game;
@@ -38,6 +39,20 @@ namespace Nekoyume.UI
         [SerializeField]
         private Button boostMinusButton;
 
+        // [TEN Code Block Start]
+        [SerializeField]
+        private Slider repeatSlider;
+
+        [SerializeField]
+        private TMP_Text repeatCountText;
+
+        [SerializeField]
+        private Button repeatPlusButton;
+
+        [SerializeField]
+        private Button repeatMinusButton;
+        // [TEN Code Block End]
+
         private Stage _stage;
         private Player _player;
         private List<Costume> _costumes;
@@ -56,6 +71,11 @@ namespace Nekoyume.UI
             submitButton.OnClickAsObservable().Subscribe(_ => BoostQuest()).AddTo(gameObject);
             boostPlusButton.OnClickAsObservable().Subscribe(_ => apSlider.value++);
             boostMinusButton.OnClickAsObservable().Subscribe(_ => apSlider.value--);
+
+            // [TEN Code Block Start]
+            repeatPlusButton.OnClickAsObservable().Subscribe(_ => repeatSlider.value++);
+            repeatMinusButton.OnClickAsObservable().Subscribe(_ => repeatSlider.value--);
+            // [TEN Code Block End]
         }
 
         public void Show(
@@ -80,6 +100,10 @@ namespace Nekoyume.UI
                 var costOfStage = GetCostOfStage();
                 apSlider.maxValue = value / costOfStage >= maxCount ? maxCount : value / costOfStage;
                 ownAPText.text = value.ToString();
+
+                // [TEN Code Block Start]
+                repeatSlider.maxValue = (int) Mathf.Floor(value / (costOfStage * apSlider.value));
+                // [TEN Code Block End]
             }).AddTo(gameObject);
 
             apSlider.onValueChanged.AddListener(value =>
@@ -87,6 +111,11 @@ namespace Nekoyume.UI
                 var costOfStage = GetCostOfStage();
                 boostCountText.text = value.ToString();
                 needAPText.text = (costOfStage * value).ToString();
+
+                // [TEN Code Block Start]
+                var actionPoint = Game.Game.instance.States.CurrentAvatarState.actionPoint;
+                repeatSlider.maxValue = (int) Mathf.Floor(actionPoint / (costOfStage * value));
+                // [TEN Code Block End]
             });
 
             var cost = GetCostOfStage();
@@ -98,6 +127,17 @@ namespace Nekoyume.UI
                 actionPoint / cost >= maxCount ? maxCount : actionPoint / cost;
             boostCountText.text = apSlider.value.ToString();
             needAPText.text = (cost * apSlider.value).ToString();
+
+            // [TEN Code Block Start]
+            repeatSlider.onValueChanged.AddListener(value =>
+            {
+                repeatCountText.text = repeatSlider.value.ToString();
+            });
+            
+            repeatSlider.value = 1;
+            repeatCountText.text = "1";
+            // [TEN Code Block End]
+
             base.Show();
         }
 
@@ -105,44 +145,95 @@ namespace Nekoyume.UI
         {
             base.Close(ignoreCloseAnimation);
             apSlider.onValueChanged.RemoveAllListeners();
+            
+            // [TEN Code Block Start]
+            repeatSlider.onValueChanged.RemoveAllListeners();
+            // [TEN Code Block End]
         }
 
         private void BoostQuest()
         {
-            _player.StartRun();
+            // [TEN Code Block Start]
+            // _player.StartRun();
+            // [TEN Code Block End]
             ActionCamera.instance.ChaseX(_player.transform);
 
             Find<WorldMap>().Close(true);
             Find<StageInformation>().Close(true);
             Find<LoadingScreen>().Show();
-            Close();
 
             _stage.IsInStage = true;
             _stage.IsShowHud = true;
-
-            if (_stageId >= GameConfig.MimisbrunnrStartStageId)
-            {
-                Game.Game.instance.ActionManager.MimisbrunnrBattle(
-                    _costumes,
-                    _equipments,
-                    _consumables,
-                    _worldId,
-                    _stageId,
-                    (int)apSlider.value
-                ).Subscribe();
-            }
-            else
-            {
-                Game.Game.instance.ActionManager.HackAndSlash(
-                    _costumes,
-                    _equipments,
-                    _consumables,
-                    _worldId,
-                    _stageId,
-                    (int)apSlider.value
-                ).Subscribe();
-            }
+              
+            // [TEN Code Block Start]
+            // if (_stageId >= GameConfig.MimisbrunnrStartStageId)
+            // {
+            //     Game.Game.instance.ActionManager.MimisbrunnrBattle(
+            //         _costumes,
+            //         _equipments,
+            //         _consumables,
+            //         _worldId,
+            //         _stageId,
+            //         (int)apSlider.value
+            //     ).Subscribe();
+            // }
+            // else
+            // {
+            //     Game.Game.instance.ActionManager.HackAndSlash(
+            //         _costumes,
+            //         _equipments,
+            //         _consumables,
+            //         _worldId,
+            //         _stageId,
+            //         (int)apSlider.value
+            //     ).Subscribe();
+            // }
+            StartCoroutine(BulkHackAndSlash());
+            // [TEN Code Block End]
         }
+
+        // [TEN Code Block Start]
+        private IEnumerator BulkHackAndSlash()
+        {
+            var repeatCount = (int) repeatSlider.value;
+            for (int i = 0; i < repeatCount; i++)
+            {
+                if (i == repeatCount - 1)
+                {
+                    _player.StartRun();
+                }
+
+                if (_stageId >= GameConfig.MimisbrunnrStartStageId)
+                {
+                    Game.Game.instance.ActionManager.MimisbrunnrBattle(
+                        _costumes,
+                        _equipments,
+                        _consumables,
+                        _worldId,
+                        _stageId,
+                        (int)apSlider.value
+                    ).Subscribe();
+                }
+                else
+                {
+                    Game.Game.instance.ActionManager.HackAndSlash(
+                        _costumes,
+                        _equipments,
+                        _consumables,
+                        _worldId,
+                        _stageId,
+                        (int)apSlider.value
+                    ).Subscribe();
+                }
+
+                if (i != repeatCount - 1)
+                {
+                    yield return new WaitForSeconds(4f);
+                }
+            }
+            Close();
+        }
+        // [TEN Code Block End]
 
         private int GetCostOfStage()
         {

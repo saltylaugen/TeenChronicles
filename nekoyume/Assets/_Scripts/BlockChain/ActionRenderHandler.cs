@@ -397,8 +397,6 @@ namespace Nekoyume.BlockChain
 
                 var gameInstance = Game.Game.instance;
                 var nextQuest = avatarState.questList?
-                    .EnumerateLazyQuestStates()
-                    .Select(l => l.State)
                     .OfType<CombinationEquipmentQuest>()
                     .Where(x => !x.Complete)
                     .OrderBy(x => x.StageId)
@@ -851,7 +849,7 @@ namespace Nekoyume.BlockChain
                     Widget.Find<BattleResultPopup>().Close();
                 }
 
-                Game.Game.BackToMain(showLoadingScreen, eval.Exception.InnerException);
+                Game.Game.BackToMain(showLoadingScreen, eval.Exception.InnerException).Forget();
             }
         }
 
@@ -931,7 +929,7 @@ namespace Nekoyume.BlockChain
                     Widget.Find<BattleResultPopup>().Close();
                 }
 
-                Game.Game.BackToMain(showLoadingScreen, eval.Exception.InnerException);
+                Game.Game.BackToMain(showLoadingScreen, eval.Exception.InnerException).Forget();
             }
         }
 
@@ -974,7 +972,7 @@ namespace Nekoyume.BlockChain
                     new LocalRandom(eval.RandomSeed),
                     States.Instance.CurrentAvatarState,
                     enemyAvatarState,
-                    eval.Action.consumableIds,
+                    new List<Guid>(),
                     Game.Game.instance.TableSheets.GetRankingSimulatorSheets(),
                     Action.RankingBattle.StageId,
                     arenaInfo,
@@ -1003,7 +1001,7 @@ namespace Nekoyume.BlockChain
                     Widget.Find<RankingBattleResultPopup>().Close();
                 }
 
-                Game.Game.BackToMain(showLoadingScreen, eval.Exception.InnerException);
+                Game.Game.BackToMain(showLoadingScreen, eval.Exception.InnerException).Forget();
             }
         }
 
@@ -1161,11 +1159,7 @@ namespace Nekoyume.BlockChain
             var questList = States.Instance.CurrentAvatarState.questList;
             foreach (var id in ids)
             {
-                var quest = questList.EnumerateLazyQuestStates().First(lq =>
-                    (lq.GetStateOrSerializedEncoding(out Quest q, out Dictionary d)
-                        ? q.Id
-                        : Quest.GetQuestId(d)).Equals(id)
-                ).State;
+                var quest = questList.First(q => q.Id == id);
                 var rewardMap = quest.Reward.ItemMap;
 
                 foreach (var reward in rewardMap)

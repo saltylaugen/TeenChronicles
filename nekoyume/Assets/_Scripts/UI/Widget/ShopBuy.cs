@@ -24,14 +24,9 @@ namespace Nekoyume.UI
         [SerializeField] private Module.ShopBuyItems shopItems = null;
         [SerializeField] private ShopBuyBoard shopBuyBoard = null;
         [SerializeField] private Button sellButton = null;
-        [SerializeField] private Button spineButton = null;
         [SerializeField] private Button closeButton = null;
         [SerializeField] private Canvas frontCanvas;
         [SerializeField] private List<ShopItemViewRow> itemViewItems;
-
-        private NPC _npc;
-        private static readonly Vector3 NPCPosition = new Vector3(1000.2f, 998, 1.7f);
-        private const int NPCId = 300000;
 
         private Shop SharedModel { get; set; }
 
@@ -61,17 +56,21 @@ namespace Nekoyume.UI
                     Find<ItemCountAndPricePopup>().Close();
                     Find<ShopSell>().gameObject.SetActive(true);
                     Find<ShopSell>().Show();
-                    _npc?.gameObject.SetActive(false);
                     gameObject.SetActive(false);
                 });
             });
 
-            spineButton.onClick.AddListener(() => _npc.PlayAnimation(NPCAnimation.Type.Emotion_01));
             closeButton.onClick.AddListener(() =>
             {
-                CleanUpWishListAlertPopup(Close);
+                CleanUpWishListAlertPopup(() =>
+                {
+                    Close();
+                });
             });
-            CloseWidget = () => CleanUpWishListAlertPopup(Close);
+            CloseWidget = () => CleanUpWishListAlertPopup(() =>
+            {
+                Close();
+            });
         }
 
         public override void Initialize()
@@ -112,56 +111,30 @@ namespace Nekoyume.UI
                 shopBuyBoard.ShowDefaultView();
                 shopItems.Show();
 
-                Reset();
                 Find<ShopSell>().gameObject.SetActive(false);
                 Find<DataLoadingScreen>().Close();
                 HelpTooltip.HelpMe(100018, true);
             }
         }
 
-        private void Reset()
-        {
-            ShowNPC();
-        }
-
         public void Open()
         {
             shopItems.Reset();
-            Reset();
             base.Show(true);
         }
 
-        private void Close()
+        public override void Close(bool ignoreCloseAnimation = false)
         {
             if (shopItems.IsActiveInputField)
             {
                 return;
             }
 
-            _npc?.gameObject.SetActive(false);
             shopItems.Close();
             Find<ItemCountAndPricePopup>().Close();
+            // This invoking (OnRoomEnter) has dependency with above if statement (shopItems.IsActiveInputField).
             Game.Event.OnRoomEnter.Invoke(true);
-            Close(true);
-        }
-
-        public void ForceClose()
-        {
-            _npc?.gameObject.SetActive(false);
-            shopItems.Close();
-            Find<ItemCountAndPricePopup>().Close();
-            Close(true);
-        }
-
-        private void ShowNPC()
-        {
-            var go = Game.Game.instance.Stage.npcFactory.Create(NPCId, NPCPosition,
-                LayerType.InGameBackground, 3);
-            _npc = go.GetComponent<NPC>();
-            _npc.SpineController.Appear();
-            go.SetActive(true);
-            frontCanvas.sortingLayerName = LayerType.UI.ToLayerName();
-            _npc.PlayAnimation(NPCAnimation.Type.Greeting_01);
+            base.Close(true);
         }
 
         private void ShowTooltip(ShopItemView view)
@@ -249,15 +222,26 @@ namespace Nekoyume.UI
                 return;
             }
 
-            CleanUpWishListAlertPopup(Close);
+            CleanUpWishListAlertPopup(() =>
+            {
+                Close();
+            });
         }
 
         private static bool ButtonEnabledFuncForBuy(CountableItem inventoryItem)
         {
-            return inventoryItem is ShopItem shopItem &&
-                   States.Instance.GoldBalanceState.Gold >= shopItem.Price.Value;
-        }
+            if (!(inventoryItem is ShopItem shopItem))
+            {
+                return false;
+            }
 
+            if (shopItem.ExpiredBlockIndex.Value - Game.Game.instance.Agent.BlockIndex <= 0)
+            {
+                return false;
+            }
+
+            return States.Instance.GoldBalanceState.Gold >= shopItem.Price.Value;
+        }
 
         private void OnClickShopItem(ShopItemView view)
         {

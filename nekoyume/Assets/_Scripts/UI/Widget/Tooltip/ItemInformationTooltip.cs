@@ -10,6 +10,7 @@ using UnityEngine;
 
 namespace Nekoyume.UI
 {
+    using Nekoyume.Helper;
     using System.Collections;
     using UniRx;
     using UnityEngine.EventSystems;
@@ -31,10 +32,17 @@ namespace Nekoyume.UI
         [SerializeField] private TextMeshProUGUI priceText;
         [SerializeField] private Scrollbar scrollbar;
 
+        // [TEN Code Block Start]
+        // 데이터를 이렇게 선언해서 사용하는건 좋지 않지만 대충합니다...
+        private Guid _currentOrderId;
+        [SerializeField] private GameObject userInfo;
+        // [TEN Code Block Enb]
+
         private readonly List<IDisposable> _disposablesForModel = new List<IDisposable>();
 
         private bool _isPointerOnScrollArea;
         private bool _isClickedButtonArea;
+        private bool _isShopItem;
 
         private new Model.ItemInformationTooltip Model { get; set; }
 
@@ -53,6 +61,12 @@ namespace Nekoyume.UI
             submitButton.OnSubmitSubject.Subscribe(_ =>
             {
                 Model.OnSubmitClick.OnNext(this);
+                Close();
+            }).AddTo(gameObject);
+
+            submitButton.OnClickDisabledSubject.Subscribe(_ =>
+            {
+                Model.OnClickBlocked.OnNext(this);
                 Close();
             }).AddTo(gameObject);
 
@@ -80,6 +94,22 @@ namespace Nekoyume.UI
             };
         }
 
+        protected override void OnEnable()
+        {
+            if (_isShopItem)
+            {
+                Game.Game.instance.Agent.BlockIndexSubject.Subscribe((long blockIndex) =>
+                {
+                    var isExpired = Model.ExpiredBlockIndex.Value - blockIndex <= 0;
+                    Model.SubmitButtonEnabled.SetValueAndForceNotify(
+                        Model.SubmitButtonEnabledFunc.Value.Invoke(Model.ItemInformation.item
+                            .Value) && !isExpired);
+                }).AddTo(_disposablesForModel);
+            }
+
+            base.OnEnable();
+        }
+
         protected override void OnDestroy()
         {
             Model.Dispose();
@@ -97,7 +127,9 @@ namespace Nekoyume.UI
                          Func<CountableItem, bool> submitEnabledFunc,
                          string submitText,
                          Action<ItemInformationTooltip> onSubmit,
-                         Action<ItemInformationTooltip> onClose = null)
+                         Action<ItemInformationTooltip> onClose = null,
+                         Action<ItemInformationTooltip> onClickBlocked = null,
+                         bool isShopItem = false)
         {
             if (item?.ItemBase.Value is null)
             {
@@ -107,6 +139,7 @@ namespace Nekoyume.UI
             submit.SetActive(submitEnabledFunc != null);
             sell.SetActive(false);
             buy.SetActive(false);
+            userInfo.SetActive(false);
 
             _disposablesForModel.DisposeAllAndClear();
             Model.target.Value = target;
@@ -126,10 +159,15 @@ namespace Nekoyume.UI
             {
                 Model.OnCloseClick.Subscribe(onClose).AddTo(_disposablesForModel);
             }
+            if (onClickBlocked != null)
+            {
+                Model.OnClickBlocked.Subscribe(onClickBlocked).AddTo(_disposablesForModel);
+            }
             Model.ItemInformation.item.Subscribe(value => SubscribeTargetItem(Model.target.Value))
                 .AddTo(_disposablesForModel);
 
             scrollbar.value = 1f;
+            _isShopItem = isShopItem;
             StartCoroutine(CoUpdate(submitButton.gameObject));
         }
 
@@ -149,6 +187,7 @@ namespace Nekoyume.UI
             submit.SetActive(false);
             buy.SetActive(false);
             sell.SetActive(true);
+            userInfo.SetActive(false);
             _disposablesForModel.DisposeAllAndClear();
             Model.target.Value = target;
             Model.ItemInformation.item.Value = item;
@@ -187,6 +226,7 @@ namespace Nekoyume.UI
             });
 
             scrollbar.value = 1f;
+            _isShopItem = true;
             StartCoroutine(CoUpdate(sell));
             sellTimer.UpdateTimer(Model.ExpiredBlockIndex.Value);
         }
@@ -206,6 +246,12 @@ namespace Nekoyume.UI
             submit.SetActive(false);
             sell.SetActive(false);
             buy.SetActive(true);
+            userInfo.SetActive(true);
+
+            // [TEN Code Block Start]
+            ShopItem shopItem = item as ShopItem;
+            _currentOrderId = shopItem.OrderId.Value;
+            // [TEN Code Block End]
 
             _disposablesForModel.DisposeAllAndClear();
             Model.target.Value = target;
@@ -235,6 +281,7 @@ namespace Nekoyume.UI
                 .AddTo(_disposablesForModel);
 
             scrollbar.value = 1f;
+            _isShopItem = true;
             StartCoroutine(CoUpdate(buy));
             buyTimer.UpdateTimer(Model.ExpiredBlockIndex.Value);
         }
@@ -243,6 +290,7 @@ namespace Nekoyume.UI
         {
             _isPointerOnScrollArea = false;
             _isClickedButtonArea = false;
+            _currentOrderId = Guid.Empty;
             _disposablesForModel.DisposeAllAndClear();
             Model.target.Value = null;
             Model.ItemInformation.item.Value = null;
@@ -334,5 +382,30 @@ namespace Nekoyume.UI
         {
             _isPointerOnScrollArea = value;
         }
+
+        // [TEN Code Block Start]
+        public void OpenSellerInfo()
+        {
+            if (_currentOrderId == Guid.Empty)
+            {
+                return;
+            }
+            OpenFriendInfo();
+        }
+
+        
+        private async void OpenFriendInfo()
+        {
+            var order = await Util.GetOrder(_currentOrderId);
+            var (exist, avatarState) = await States.TryGetAvatarStateAsync(order.SellerAvatarAddress);
+            if (avatarState is null)
+            {
+                return;
+            }
+
+            Widget.Find<FriendInfoPopup>().Show(avatarState);
+            Close();
+        }
+        // [TEN Code Block End]
     }
 }

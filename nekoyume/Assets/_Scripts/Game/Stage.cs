@@ -1,4 +1,4 @@
-// #define TEST_LOG
+#define TEST_LOG
 
 using System;
 using System.Collections;
@@ -50,7 +50,7 @@ namespace Nekoyume.Game
 
         public MonsterSpawner spawner;
 
-        public GameObject background;
+        private GameObject _background;
 
         // dummy for stage background moving.
         public GameObject dummy;
@@ -63,7 +63,7 @@ namespace Nekoyume.Game
         public bool newlyClearedStage;
         public int waveNumber;
         public int waveTurn;
-        public Player selectedPlayer;
+
         public int foodCount;
         public string zone;
         public Animator roomAnimator { get; private set; }
@@ -78,6 +78,7 @@ namespace Nekoyume.Game
         private Coroutine _positionCheckCoroutine;
         private List<int> prevFood;
 
+        public Player SelectedPlayer { get; set; }
         public List<GameObject> ReleaseWhiteList { get; private set; } = new List<GameObject>();
         public SkillController SkillController { get; private set; }
         public BuffController BuffController { get; private set; }
@@ -139,6 +140,9 @@ namespace Nekoyume.Game
 
         private void OnStageStart(BattleLog log)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(OnStageStart)}() enter");
+#endif
             _rankingBattle = false;
             if (_battleLog is null)
             {
@@ -159,6 +163,9 @@ namespace Nekoyume.Game
 
         private void OnRankingBattleStart(BattleLog log)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(OnRankingBattleStart)}() enter");
+#endif
             _rankingBattle = true;
             if (_battleLog is null)
             {
@@ -179,11 +186,17 @@ namespace Nekoyume.Game
 
         private void OnNestEnter()
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(OnNestEnter)}() enter");
+#endif
             gameObject.AddComponent<NestEntering>();
         }
 
         private void OnLoginDetail(int index)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(OnLoginDetail)}({index}) enter");
+#endif
             DOTween.KillAll();
             var players = Widget.Find<Login>().players;
             for (var i = 0; i < players.Count; ++i)
@@ -218,7 +231,7 @@ namespace Nekoyume.Game
                         player.SpineController.Appear();
                     }
 
-                    selectedPlayer = players[i];
+                    SelectedPlayer = players[i];
                 }
                 else
                 {
@@ -236,6 +249,9 @@ namespace Nekoyume.Game
 
         private void OnRoomEnter(bool showScreen)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(OnRoomEnter)}() enter");
+#endif
             showLoadingScreen = showScreen;
             gameObject.AddComponent<RoomEntering>();
             IsInStage = false;
@@ -244,29 +260,28 @@ namespace Nekoyume.Game
         // todo: 배경 캐싱.
         public void LoadBackground(string prefabName, float fadeTime = 0.0f)
         {
-            if (background)
+            if (_background)
             {
-                if (background.name.Equals(prefabName))
+                if (_background.name.Equals(prefabName))
                     return;
 
                 if (fadeTime > 0.0f)
                 {
-                    var sprites = background.GetComponentsInChildren<SpriteRenderer>();
+                    var sprites = _background.GetComponentsInChildren<SpriteRenderer>();
                     foreach (var sprite in sprites)
                     {
                         sprite.sortingOrder += 1;
                         sprite.DOFade(0.0f, fadeTime);
                     }
 
-                    var particles = background.GetComponentsInChildren<ParticleSystem>();
+                    var particles = _background.GetComponentsInChildren<ParticleSystem>();
                     foreach (var particle in particles)
                     {
                         particle.Stop();
                     }
                 }
 
-                Destroy(background, fadeTime);
-                background = null;
+                DestroyBackground(fadeTime);
             }
 
             var path = $"Prefab/Background/{prefabName}";
@@ -274,10 +289,10 @@ namespace Nekoyume.Game
             if (!prefab)
                 throw new FailedToLoadResourceException<GameObject>(path);
 
-            background = Instantiate(prefab, transform);
-            background.name = prefabName;
+            _background = Instantiate(prefab, transform);
+            _background.name = prefabName;
 
-            foreach (Transform child in background.transform)
+            foreach (Transform child in _background.transform)
             {
                 var childName = child.name;
                 if (!childName.StartsWith("bgvfx"))
@@ -296,8 +311,17 @@ namespace Nekoyume.Game
             }
         }
 
+        public void DestroyBackground(float fadeTime = 0f)
+        {
+            Destroy(_background, fadeTime);
+            _background = null;
+        }
+
         public void PlayStage(BattleLog log)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(PlayStage)}() enter");
+#endif
             if (log?.Count > 0)
             {
                 _battleCoroutine = StartCoroutine(CoPlayStage(log));
@@ -306,6 +330,9 @@ namespace Nekoyume.Game
 
         private void PlayRankingBattle(BattleLog log)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(PlayRankingBattle)}() enter");
+#endif
             if (log?.Count > 0)
             {
                 _battleCoroutine = StartCoroutine(CoPlayRankingBattle(log));
@@ -314,6 +341,9 @@ namespace Nekoyume.Game
 
         private IEnumerator CoPlayStage(BattleLog log)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoPlayStage)}() enter");
+#endif
             var avatarState = States.Instance.CurrentAvatarState;
             prevFood = avatarState.inventory.Items
                 .Select(i => i.item)
@@ -336,6 +366,9 @@ namespace Nekoyume.Game
 
         private IEnumerator CoPlayRankingBattle(BattleLog log)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoPlayRankingBattle)}() enter");
+#endif
             IsInStage = true;
             yield return StartCoroutine(CoRankingBattleEnter(log));
             Widget.Find<ArenaBattleLoadingScreen>().Close();
@@ -412,6 +445,9 @@ namespace Nekoyume.Game
 
         private IEnumerator CoStageEnter(BattleLog log)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoStageEnter)}() enter");
+#endif
             worldId = log.worldId;
             stageId = log.stageId;
             waveCount = log.waveCount;
@@ -444,12 +480,12 @@ namespace Nekoyume.Game
 
         private IEnumerator CoRankingBattleEnter(BattleLog log)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoRankingBattleEnter)}() enter");
+#endif
             waveCount = log.waveCount;
             waveTurn = 1;
             stageId = log.stageId;
-#if TEST_LOG
-            Debug.LogWarning($"{nameof(waveTurn)}: {waveTurn} / {nameof(CoRankingBattleEnter)}");
-#endif
             if (!Game.instance.TableSheets.StageSheet.TryGetValue(stageId, out var data))
                 yield break;
 
@@ -467,6 +503,9 @@ namespace Nekoyume.Game
 
         private IEnumerator CoStageEnd(BattleLog log)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoStageEnd)}() enter");
+#endif
             IsAvatarStateUpdatedAfterBattle = false;
             // NOTE ActionRenderHandler.Instance.Pending should be false before _onEnterToStageEnd.OnNext() invoked.
             ActionRenderHandler.Instance.Pending = false;
@@ -626,6 +665,9 @@ namespace Nekoyume.Game
 
         private IEnumerator CoRankingBattleEnd(BattleLog log, bool forceQuit = false)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoRankingBattleEnd)}() enter");
+#endif
             IsAvatarStateUpdatedAfterBattle = false;
 
             // NOTE ActionRenderHandler.Instance.Pending should be false before _onEnterToStageEnd.OnNext() invoked.
@@ -658,6 +700,9 @@ namespace Nekoyume.Game
 
         public IEnumerator CoSpawnPlayer(Model.Player character)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoSpawnPlayer)}() enter");
+#endif
             var playerCharacter = RunPlayer(false);
             playerCharacter.Set(character, true);
             playerCharacter.ShowSpeech("PLAYER_INIT");
@@ -716,6 +761,9 @@ namespace Nekoyume.Game
 
         public IEnumerator CoSpawnEnemyPlayer(EnemyPlayer character)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoSpawnEnemyPlayer)}() enter");
+#endif
             var battle = Widget.Find<UI.Battle>();
             battle.BossStatus.Close();
             battle.EnemyPlayerStatus.Show();
@@ -830,10 +878,6 @@ namespace Nekoyume.Game
 
             var infos = skillInfos.ToList();
             var infosFirstWaveTurn = infos.First().WaveTurn;
-#if TEST_LOG
-            Debug.LogWarning(
-                $"{nameof(waveTurn)}: {waveTurn} / {nameof(infosFirstWaveTurn)}: {infosFirstWaveTurn} / {nameof(CoSkill)}");
-#endif
             var time = Time.time;
             yield return new WaitUntil(() => Time.time - time > 5f ||  waveTurn == infosFirstWaveTurn);
             yield return StartCoroutine(CoBeforeSkill(character));
@@ -943,11 +987,11 @@ namespace Nekoyume.Game
             List<Enemy> enemies,
             bool hasBoss)
         {
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoSpawnWave)}() enter. {nameof(waveTurn)}({waveTurn})");
+#endif
             this.waveNumber = waveNumber;
             this.waveTurn = waveTurn;
-#if TEST_LOG
-            Debug.LogWarning($"{nameof(waveTurn)}: {waveTurn} / {nameof(CoSpawnWave)}");
-#endif
             var prevEnemies = GetComponentsInChildren<Character.Enemy>();
             yield return new WaitWhile(() => prevEnemies.Any(enemy => enemy.isActiveAndEnabled));
             foreach (var prev in prevEnemies)
@@ -998,15 +1042,18 @@ namespace Nekoyume.Game
         public IEnumerator CoWaveTurnEnd(int turnNumber, int waveTurn)
         {
 #if TEST_LOG
-            Debug.LogWarning($"{nameof(this.waveTurn)}: {this.waveTurn} / {nameof(CoWaveTurnEnd)} Enter");
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoWaveTurnEnd)} enter. {nameof(this.waveTurn)}({this.waveTurn}) [para : waveTurn :{waveTurn}");
 #endif
-            yield return new WaitWhile(() => selectedPlayer.actions.Any());
+            yield return new WaitWhile(() => SelectedPlayer.actions.Any());
             Event.OnPlayerTurnEnd.Invoke(turnNumber);
             var characters = GetComponentsInChildren<Character.CharacterBase>();
+#if TEST_LOG
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoWaveTurnEnd)} ing. {nameof(this.waveTurn)}({this.waveTurn}) [para : waveTurn :{waveTurn}");
+#endif
             yield return new WaitWhile(() => characters.Any(i => i.actions.Any()));
             this.waveTurn = waveTurn;
 #if TEST_LOG
-            Debug.LogWarning($"{nameof(this.waveTurn)}: {this.waveTurn} / {nameof(CoWaveTurnEnd)} Exit");
+            Debug.Log($"[{nameof(Stage)}] {nameof(CoWaveTurnEnd)} exit. {nameof(this.waveTurn)}({this.waveTurn}) [para : waveTurn :{waveTurn}");
 #endif
         }
 
@@ -1026,33 +1073,33 @@ namespace Nekoyume.Game
             var characters = GetComponentsInChildren<Character.CharacterBase>();
             yield return new WaitWhile(() => characters.Any(i => i.actions.Any()));
             var character = GetCharacter(model);
-            _playerPosition = selectedPlayer.transform.position;
+            _playerPosition = SelectedPlayer.transform.position;
             character.Dead();
         }
 
         public Player GetPlayer(bool forceCreate = false)
         {
             if (!forceCreate &&
-                selectedPlayer &&
-                selectedPlayer.gameObject.activeSelf)
+                SelectedPlayer &&
+                SelectedPlayer.gameObject.activeSelf)
             {
-                return selectedPlayer;
+                return SelectedPlayer;
             }
 
-            if (selectedPlayer)
+            if (SelectedPlayer)
             {
-                objectPool.Remove<Model.Player>(selectedPlayer.gameObject);
+                objectPool.Remove<Model.Player>(SelectedPlayer.gameObject);
             }
 
             var go = PlayerFactory.Create(States.Instance.CurrentAvatarState);
-            selectedPlayer = go.GetComponent<Player>();
+            SelectedPlayer = go.GetComponent<Player>();
 
-            if (selectedPlayer is null)
+            if (SelectedPlayer is null)
             {
                 throw new NotFoundComponentException<Player>();
             }
 
-            return selectedPlayer;
+            return SelectedPlayer;
         }
 
         public Player GetPlayer(Vector3 position, bool forceCreate = false)
@@ -1088,9 +1135,9 @@ namespace Nekoyume.Game
 
         public Player RunPlayerForNextStage()
         {
-            if (selectedPlayer != null)
+            if (SelectedPlayer != null)
             {
-                _playerPosition = selectedPlayer.transform.position;
+                _playerPosition = SelectedPlayer.transform.position;
             }
 
             var player = GetPlayer(_playerPosition);

@@ -5,10 +5,13 @@ using Nekoyume.Game.Character;
 using Nekoyume.Game.Factory;
 using Nekoyume.Helper;
 using Nekoyume.Model.Item;
+using Nekoyume.Model.Mail;
 using Nekoyume.Model.Stat;
 using Nekoyume.Model.State;
+using Nekoyume.State;
 using Nekoyume.UI.Model;
 using Nekoyume.UI.Module;
+using Nekoyume.UI.Scroller;
 using TMPro;
 using UniRx;
 using UnityEngine;
@@ -52,6 +55,10 @@ namespace Nekoyume.UI
 
         [SerializeField]
         private RawImage playerRawImageInLobbyCamera;
+        
+        // [TEN Code Block Start]
+        private AvatarState _currentStat = null;
+        // [TEN Code Block End]
 
         private CharacterStats _tempStats;
         private GameObject _cachedCharacterTitle;
@@ -124,6 +131,10 @@ namespace Nekoyume.UI
 
         private void UpdateSlotView(AvatarState avatarState)
         {
+            // [TEN Code Block Start]
+            _currentStat = avatarState;
+            // [TEN Code Block End]
+
             var game = Game.Game.instance;
             var playerModel = _player.Model;
 
@@ -183,5 +194,19 @@ namespace Nekoyume.UI
 
             tooltip.Show(slot.RectTransform, new InventoryItem(slot.Item, 1));
         }
+
+        // [TEN Code Block Start]
+        public void CopyCharacterAddress()
+        {
+            if (_currentStat is null)
+            {
+                OneLineSystem.Push(MailType.System, "Fail copy UserAddress", NotificationCell.NotificationType.Information);
+                return;
+            }
+
+            ClipboardHelper.CopyToClipboard(_currentStat.agentAddress.ToString());
+            OneLineSystem.Push(MailType.System, "Copied UserAddress", NotificationCell.NotificationType.Information);
+        }
+        // [TEN Code Block End]
     }
 }

@@ -324,10 +324,10 @@ namespace Nekoyume.BlockChain
         }
 
         public bool TryGetTxId(Guid actionId, out TxId txId) =>
-            _transactions.TryGetValue(actionId, out txId) &&
-            IsTxStaged(txId);
+            _transactions.TryGetValue(actionId, out txId);
 
-        public bool IsTxStaged(TxId txId) => blocks.GetStagedTransactionIds().Contains(txId);
+        public UniTask<bool> IsTxStagedAsync(TxId txId) =>
+            UniTask.FromResult(blocks.GetStagedTransactionIds().Contains(txId));
 
         public FungibleAssetValue GetBalance(Address address, Currency currency) =>
             blocks.GetBalance(address, currency);
@@ -431,17 +431,6 @@ namespace Nekoyume.BlockChain
                     await GetBalanceAsync(Address, goldCurrency)));
 
                 ActionRenderHandler.Instance.GoldCurrency = goldCurrency;
-
-                // 랭킹의 상태를 한 번 동기화 한다.
-                for (var i = 0; i < RankingState.RankingMapCapacity; ++i)
-                {
-                    var address = RankingState.Derive(i);
-                    var mapState = await GetStateAsync(address) is Bencodex.Types.Dictionary serialized
-                        ? new RankingMapState(serialized)
-                        : new RankingMapState(address);
-                    States.Instance.SetRankingMapStates(mapState);
-                }
-
                 if (await GetStateAsync(GameConfigState.Address) is Dictionary configDict)
                 {
                     States.Instance.SetGameConfigState(new GameConfigState(configDict));
@@ -980,7 +969,7 @@ namespace Nekoyume.BlockChain
                 // 프레임 저하를 막기 위해 별도 스레드로 처리합니다.
                 Task<List<Transaction<NCAction>>> getOwnTxs =
                     Task.Run(
-                        () => _stagePolicy.Iterate()
+                        () => _stagePolicy.Iterate(blocks)
                             .Where(tx => tx.Signer.Equals(Address))
                             .ToList()
                     );

@@ -166,7 +166,7 @@ namespace Nekoyume.UI
             {
                 // 스크린 영역. 로딩창류.
                 Widget.Create<GrayLoadingScreen>(),
-                Widget.Create<BlockSyncLoadingScreen>(),
+                Widget.Create<DimmedLoadingScreen>(),
                 Widget.Create<LoadingScreen>(),
                 Widget.Create<DataLoadingScreen>(),
                 Widget.Create<PreloadingScreen>(),
@@ -352,6 +352,7 @@ namespace Nekoyume.UI
             UpdateLayers();
 
             Widget.Find<SettingPopup>().transform.SetAsLastSibling();
+            EventManager.UpdateEventContainer(transform);
         }
 
         public void InitWidgetInMain()

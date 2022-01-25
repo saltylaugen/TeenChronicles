@@ -72,6 +72,11 @@ namespace Nekoyume.UI
 
         [SerializeField]
         private GameObject skipButton = null;
+        
+        // [TEN Code Block Start]
+        [SerializeField]
+        private GameObject skipForeverButton = null;
+        // [TEN Code Block End]
 
         public SynopsisScene[] scripts;
         [Tooltip("대사가 사라질때 걸리는 시간")]
@@ -171,7 +176,19 @@ namespace Nekoyume.UI
                         tweener.Play();
                         skeletonTweener?.Play();
 
-                        yield return new WaitUntil(() => !tweener.IsPlaying() || skipSynopsis);
+                        var fadeInPlaying = true;
+                        while (fadeInPlaying)
+                        {
+                            if (skipSynopsis)
+                            {
+                                fadeInPlaying = false;
+                            }
+                            else
+                            {
+                                fadeInPlaying = tweener != null && tweener.IsActive() && tweener.IsPlaying();
+                            }
+                            yield return null;
+                        }
 
                         if (skipSynopsis)
                         {
@@ -197,7 +214,19 @@ namespace Nekoyume.UI
                         tweener.Play();
                         skeletonTweener?.Play();
 
-                        yield return new WaitUntil(() => !tweener.IsPlaying() || skipSynopsis);
+                        var fadeOutPlaying = true;
+                        while (fadeOutPlaying)
+                        {
+                            if (skipSynopsis)
+                            {
+                                fadeOutPlaying = false;
+                            }
+                            else
+                            {
+                                fadeOutPlaying = tweener != null && tweener.IsActive() && tweener.IsPlaying();
+                            }
+                            yield return null;
+                        }
 
                         if (skipSynopsis)
                         {
@@ -283,8 +312,20 @@ namespace Nekoyume.UI
                     tweener1.Play();
                     tweener2.Play();
 
-                    yield return new WaitUntil(() =>
-                        (!tweener1.IsPlaying() && !tweener2.IsPlaying()) || skipSynopsis);
+                    var playing = true;
+                    while (playing)
+                    {
+                        if (skipSynopsis)
+                        {
+                            playing = false;
+                        }
+                        else
+                        {
+                            playing = tweener1 != null && tweener1.IsActive() && tweener1.IsPlaying() &&
+                                      tweener2 != null && tweener2.IsActive() && tweener2.IsPlaying();
+                        }
+                        yield return null;
+                    }
                 }
                 else
                 {
@@ -346,6 +387,7 @@ namespace Nekoyume.UI
             AudioController.instance.PlayMusic(AudioController.MusicCode.Prologue);
             var skipPrologue = States.Instance.AgentState.avatarAddresses.Any();
             skipButton.SetActive(skipPrologue);
+            skipForeverButton.SetActive(skipPrologue);
             StartCoroutine(StartSynopsis(skipPrologue));
         }
 
@@ -356,12 +398,17 @@ namespace Nekoyume.UI
             {
                 try
                 {
+                    var loadingScreen = Find<DataLoadingScreen>();
+                    loadingScreen.Message = L10nManager.Localize("UI_LOADING_BOOTSTRAP_START");
+                    loadingScreen.Show();
                     await States.Instance.SelectAvatarAsync(slotIndex);
+                    loadingScreen.Close();
                     Game.Event.OnRoomEnter.Invoke(false);
                 }
                 catch (KeyNotFoundException e)
                 {
                     Debug.LogWarning(e.Message);
+                    Find<DataLoadingScreen>().Close();
                     EnterLogin();
                 }
             }
@@ -384,6 +431,14 @@ namespace Nekoyume.UI
             skipAll = true;
             Skip();
         }
+        // [TEN Code Block Start]
+        public void SkipAllForever()
+        {
+            skipAll = true;
+            Skip();
+            PlayerPrefs.SetInt("__10C__SKIP_FOREVER", 1);
+        }
+        // [TEN Code Block End]
         private void EnterLogin()
         {
             Find<Login>().Show();

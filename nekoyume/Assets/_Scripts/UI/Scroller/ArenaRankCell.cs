@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using Nekoyume.Battle;
 using Nekoyume.Game.Controller;
 using Nekoyume.Helper;
@@ -66,6 +68,11 @@ namespace Nekoyume.UI.Scroller
         [SerializeField]
         private ConditionalButton challengeButton = null;
 
+        // [TEN Code Block Start]
+        [SerializeField]
+        private SubmitButton maxChallengeButton = null;
+        // [TEN Code Block End]
+
         private RectTransform _rectTransformCache;
         private bool _isCurrentUser;
         private readonly Subject<ArenaRankCell> _onClickAvatarInfo = new Subject<ArenaRankCell>();
@@ -118,6 +125,19 @@ namespace Nekoyume.UI.Scroller
                     _onClickChallenge.OnNext(this);
                 })
                 .AddTo(gameObject);
+            
+            // [TEN Code Block Start]
+            if (maxChallengeButton != null) {
+                maxChallengeButton.OnSubmitClick
+                    .ThrottleFirst(new TimeSpan(0, 0, 1))
+                    .Subscribe(_ =>
+                    {
+                        AudioController.PlayClick();
+                        StartCoroutine(ChallangeRemainingTickets());
+                    })
+                    .AddTo(gameObject);
+            }
+            // [TEN Code Block End]
 
             Game.Event.OnUpdatePlayerEquip
                 .Where(_ => _isCurrentUser)
@@ -131,6 +151,21 @@ namespace Nekoyume.UI.Scroller
                 })
                 .AddTo(gameObject);
         }
+        
+        // [TEN Code Block Start]
+        IEnumerator ChallangeRemainingTickets()
+        {
+            var currentAddress = States.Instance.CurrentAvatarState?.address;
+            var arenaInfo = States.Instance.WeeklyArenaState.GetArenaInfo(currentAddress.Value);
+
+            for (int i = 0; i < arenaInfo.DailyChallengeCount; i++)
+            {
+                Context.OnClickChallenge.OnNext(this);
+                _onClickChallenge.OnNext(this);
+                yield return new WaitForSeconds(3);
+            }
+        }
+        // [TEN Code Block End]
 
         public void Show((
             int rank,
@@ -186,10 +221,15 @@ namespace Nekoyume.UI.Scroller
 
             challengeCountTextContainer.SetActive(_isCurrentUser);
             challengeButton.gameObject.SetActive(!_isCurrentUser);
+            // [TEN Code Block Start]
+            if (maxChallengeButton != null) {
+                maxChallengeButton.gameObject.SetActive(!_isCurrentUser);
+            }
+            // [TEN Code Block End]
 
             if (_isCurrentUser)
             {
-                var player = Game.Game.instance.Stage.selectedPlayer;
+                var player = Game.Game.instance.Stage.SelectedPlayer;
                 if (player is null)
                 {
                     player = Game.Game.instance.Stage.GetPlayer();
@@ -211,10 +251,21 @@ namespace Nekoyume.UI.Scroller
                 if (itemData.currentAvatarArenaInfo is null)
                 {
                     challengeButton.SetConditionalState(true);
+                    // [TEN Code Block Start]
+                    if (maxChallengeButton != null) {
+                        maxChallengeButton.SetSubmittable(true);
+                    }
+                    // [TEN Code Block End]
                 }
                 else
                 {
                     challengeButton.SetConditionalState(itemData.currentAvatarArenaInfo.DailyChallengeCount > 0);
+                    
+                    // [TEN Code Block Start]
+                    if (maxChallengeButton != null) {
+                        maxChallengeButton.SetSubmittable(itemData.currentAvatarArenaInfo.DailyChallengeCount > 0);
+                    }
+                    // [TEN Code Block End]
                 }
             }
 

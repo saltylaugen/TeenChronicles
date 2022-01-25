@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Amazon.CloudWatchLogs;
 using Amazon.CloudWatchLogs.Model;
 using Bencodex.Types;
+using Cysharp.Threading.Tasks;
 using Lib9c.Formatters;
 using Libplanet;
 using MessagePack;
@@ -22,6 +23,7 @@ using Nekoyume.Model.State;
 using Nekoyume.Pattern;
 using Nekoyume.State;
 using Nekoyume.UI;
+using Nekoyume.UI.Scroller;
 using UnityEngine;
 using Menu = Nekoyume.UI.Menu;
 
@@ -48,11 +50,11 @@ namespace Nekoyume.Game
         public States States { get; private set; }
 
         public LocalLayer LocalLayer { get; private set; }
-        
+
         public LocalLayerActions LocalLayerActions { get; private set; }
 
         public IAgent Agent { get; private set; }
-        
+
         public Analyzer Analyzer { get; private set; }
 
         public Stage Stage => stage;
@@ -186,7 +188,7 @@ namespace Nekoyume.Game
 
         protected override void OnDestroy()
         {
-            ActionManager.Dispose();
+            ActionManager?.Dispose();
             base.OnDestroy();
         }
 
@@ -247,12 +249,12 @@ namespace Nekoyume.Game
 
         private static void OnRPCAgentRetryStarted(RPCAgent rpcAgent)
         {
-            Widget.Find<BlockSyncLoadingScreen>().Show();
+            Widget.Find<DimmedLoadingScreen>().Show();
         }
 
         private static void OnRPCAgentRetryEnded(RPCAgent rpcAgent)
         {
-            var widget = (Widget) Widget.Find<BlockSyncLoadingScreen>();
+            var widget = (Widget) Widget.Find<DimmedLoadingScreen>();
             if (widget.IsActive())
             {
                 widget.Close();
@@ -272,7 +274,7 @@ namespace Nekoyume.Game
 
             var needToBackToMain = false;
             var showLoadingScreen = false;
-            var widget = (Widget) Widget.Find<BlockSyncLoadingScreen>();
+            var widget = (Widget) Widget.Find<DimmedLoadingScreen>();
             if (widget.IsActive())
             {
                 widget.Close();
@@ -338,7 +340,7 @@ namespace Nekoyume.Game
 
             var needToBackToMain = false;
             var showLoadingScreen = false;
-            var widget = (Widget) Widget.Find<BlockSyncLoadingScreen>();
+            var widget = (Widget) Widget.Find<DimmedLoadingScreen>();
             if (widget.IsActive())
             {
                 widget.Close();
@@ -394,7 +396,7 @@ namespace Nekoyume.Game
 
         private void QuitWithAgentConnectionError(RPCAgent rpcAgent)
         {
-            var screen = Widget.Find<BlockSyncLoadingScreen>();
+            var screen = Widget.Find<DimmedLoadingScreen>();
             if (screen.IsActive())
             {
                 screen.Close();
@@ -532,7 +534,7 @@ namespace Nekoyume.Game
             if (Analyzer.Instance != null)
             {
                 Analyzer.Instance.Track("Unity/Player Quit");
-                Analyzer.Instance.Flush();   
+                Analyzer.Instance.Flush();
             }
 
             _logsClient?.Dispose();
@@ -557,11 +559,11 @@ namespace Nekoyume.Game
             }
         }
 
-        public static void BackToMain(bool showLoadingScreen, Exception exc)
+        public static async UniTaskVoid BackToMain(bool showLoadingScreen, Exception exc)
         {
             Debug.LogException(exc);
 
-            var (key, code, errorMsg) = ErrorCode.GetErrorCode(exc);
+            var (key, code, errorMsg) = await ErrorCode.GetErrorCodeAsync(exc);
             Event.OnRoomEnter.Invoke(showLoadingScreen);
             instance.Stage.OnRoomEnterEnd
                 .First()
@@ -570,10 +572,32 @@ namespace Nekoyume.Game
             MainCanvas.instance.InitWidgetInMain();
         }
 
-        public static void PopupError(Exception exc)
+        public void BackToNest()
+        {
+            if (Stage.IsInStage)
+            {
+                NotificationSystem.Push(Nekoyume.Model.Mail.MailType.System,
+                    L10nManager.Localize("UI_BLOCK_EXIT"),
+                    NotificationCell.NotificationType.Information);
+                return;
+            }
+
+            Event.OnNestEnter.Invoke();
+
+            var deletableWidgets = Widget.FindWidgets().Where(widget =>
+                !(widget is SystemWidget) &&
+                !(widget is MessageCatTooltip) && widget.IsActive());
+            foreach (var widget in deletableWidgets)
+            {
+                widget.Close(true);
+            }
+            Widget.Find<Login>().Show();
+        }
+
+        public static async UniTaskVoid PopupError(Exception exc)
         {
             Debug.LogException(exc);
-            var (key, code, errorMsg) = ErrorCode.GetErrorCode(exc);
+            var (key, code, errorMsg) = await ErrorCode.GetErrorCodeAsync(exc);
             PopupError(key, code, errorMsg);
         }
 

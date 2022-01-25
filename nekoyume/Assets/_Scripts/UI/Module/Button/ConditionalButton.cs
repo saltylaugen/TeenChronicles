@@ -1,4 +1,5 @@
 using System;
+using Nekoyume.Game.Controller;
 using UnityEngine;
 using UnityEngine.UI;
 using Nekoyume.L10n;
@@ -20,6 +21,9 @@ namespace Nekoyume.UI.Module
 
         [SerializeField]
         private Button button = null;
+
+        [SerializeField]
+        private Button disabledButton = null;
 
         [SerializeField]
         private GameObject normalObject = null;
@@ -48,6 +52,21 @@ namespace Nekoyume.UI.Module
         public readonly Subject<State> OnClickSubject = new Subject<State>();
 
         public readonly Subject<Unit> OnSubmitSubject = new Subject<Unit>();
+
+        private IObservable<Unit> _onClickDisabledSubject = null;
+
+        public IObservable<Unit> OnClickDisabledSubject
+        {
+            get
+            {
+                if (_onClickDisabledSubject is null)
+                {
+                    _onClickDisabledSubject = disabledButton.OnClickAsObservable();
+                }
+
+                return _onClickDisabledSubject;
+            }
+        }
 
         public bool IsSubmittable => _interactable && CurrentState.Value == State.Normal;
 
@@ -126,7 +145,7 @@ namespace Nekoyume.UI.Module
             }
         }
 
-        public void UpdateObjects()
+        public virtual void UpdateObjects()
         {
             var condition = CheckCondition();
             SetConditionalState(condition);
@@ -174,6 +193,7 @@ namespace Nekoyume.UI.Module
             OnClickSubject.OnNext(CurrentState.Value);
             if (IsSubmittable)
             {
+                AudioController.PlayClick();
                 OnSubmitSubject.OnNext(default);
             }
 
