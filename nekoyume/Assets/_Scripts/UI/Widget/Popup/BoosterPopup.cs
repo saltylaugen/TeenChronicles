@@ -1,5 +1,6 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Nekoyume.BlockChain;
 using Nekoyume.Game;
@@ -109,8 +110,8 @@ namespace Nekoyume.UI
             apSlider.onValueChanged.AddListener(value =>
             {
                 var costOfStage = GetCostOfStage();
-                boostCountText.text = value.ToString();
-                needAPText.text = (costOfStage * value).ToString();
+                boostCountText.text = value.ToString(CultureInfo.InvariantCulture);
+                needAPText.text = (costOfStage * value).ToString(CultureInfo.InvariantCulture);
 
                 // [TEN Code Block Start]
                 var actionPoint = Game.Game.instance.States.CurrentAvatarState.actionPoint;
@@ -125,8 +126,8 @@ namespace Nekoyume.UI
             apSlider.value = 0;
             apSlider.value = apSlider.maxValue =
                 actionPoint / cost >= maxCount ? maxCount : actionPoint / cost;
-            boostCountText.text = apSlider.value.ToString();
-            needAPText.text = (cost * apSlider.value).ToString();
+            boostCountText.text = apSlider.value.ToString(CultureInfo.InvariantCulture);
+            needAPText.text = (cost * apSlider.value).ToString(CultureInfo.InvariantCulture);
 
             // [TEN Code Block Start]
             repeatSlider.onValueChanged.AddListener(value =>
@@ -241,7 +242,7 @@ namespace Nekoyume.UI
                 Game.Game.instance.TableSheets.StageSheet.Values.FirstOrDefault(i =>
                     i.Id == _stageId);
 
-            return selectedStageIdRow.CostAP;
+            return selectedStageIdRow?.CostAP ?? int.MaxValue;
         }
     }
 }
