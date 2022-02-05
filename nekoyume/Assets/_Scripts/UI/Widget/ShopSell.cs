@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using Libplanet.Assets;
 using Nekoyume.Game.Controller;
@@ -46,6 +48,10 @@ namespace Nekoyume.UI
         private Button closeButton = null;
 
         private const int LimitPrice = 100000000;
+        
+        // [TEN Code Block Start]
+        private bool isRenewRunning = false;
+        // [TEN Code Block End]
 
         private Shop SharedModel { get; set; }
 
@@ -554,5 +560,80 @@ namespace Nekoyume.UI
             inventory.SharedModel.ActiveFunc.SetValueAndForceNotify(inventoryItem =>
                 (inventoryItem.ItemBase.Value is ITradableItem));
         }
+
+        // [TEN Code Block Start]
+        public void RequestRenew()
+        {
+            if(isRenewRunning)
+            {
+                OneLineSystem.Push(MailType.System, $"Wait Renew Progress",
+                    NotificationCell.NotificationType.Information);
+                return;
+            }
+
+            var cancel = shopItems.SharedModel.Items.Subscribe(Items =>
+            {
+                var result = new List<ShopItem>();
+
+                using (var items = Items.GetEnumerator())
+                {
+                    while (items.MoveNext())
+                    {
+                        foreach (var item in items.Current.Value)
+                        {
+                            result.Add(item);
+                        }
+                    }
+                }
+        
+                StartCoroutine(RunRenew(result));
+            }
+            );
+
+            cancel.Dispose();
+        }
+
+        private IEnumerator RunRenew(List<ShopItem> items)
+        {
+            isRenewRunning = true;
+            OneLineSystem.Push(MailType.System, $"ALL Renew Start",
+                NotificationCell.NotificationType.Information);
+            
+            var renewed = new List<Guid>();
+            foreach (var item in items)
+            {
+                if (!(item.ItemBase.Value is ITradableItem tradableItem))
+                {
+                    break;
+                }
+
+                var orderId = item.OrderId.Value;
+                var price = item.Price.Value;
+                var count = item.Count.Value;
+                var itemSubType = item.ItemBase.Value.ItemSubType;
+                var isRenewRequired = !renewed.Contains(orderId) && item.ExpiredBlockIndex.Value - Game.Game.instance.Agent.BlockIndex <= 5000;
+
+                if (isRenewRequired)
+                {
+                    Game.Game.instance.ActionManager.UpdateSell(
+                        orderId,
+                        tradableItem,
+                        count,
+                        price,
+                        itemSubType).Subscribe();
+                    Analyzer.Instance.Track("Unity/UpdateSell");
+                    renewed.Add(orderId);
+                    // Debug.LogError(orderId + " " + price + " " + isRenewRequired);
+
+                    OneLineSystem.Push(MailType.Auction, $"{item.ItemBase.Value.GetLocalizedName()} Renew Start",
+                        NotificationCell.NotificationType.Information);
+                    yield return new WaitForSeconds(5f);
+                }
+            }
+
+            yield return new WaitForSeconds(120f);
+            isRenewRunning = false;
+        }
+        // [TEN Code Block End]
     }
 }
