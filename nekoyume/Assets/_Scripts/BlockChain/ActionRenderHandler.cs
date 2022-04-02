@@ -13,6 +13,7 @@ using Nekoyume.L10n;
 using Nekoyume.Model.BattleStatus;
 using Nekoyume.Model.Mail;
 using Nekoyume.Model.Item;
+using Nekoyume.Model;
 using Nekoyume.State;
 using Nekoyume.UI;
 using Nekoyume.Model.State;
@@ -382,7 +383,7 @@ namespace Nekoyume.BlockChain
                     string.Format(format, result.itemUsable.GetLocalizedName()),
                     NotificationCell.NotificationType.Notification);
 
-                States.Instance.UpdateCombinationSlotState(slotIndex, slotState);
+                UpdateCombinationSlotState(slotIndex, slotState);
                 UpdateAgentStateAsync(eval);
                 UpdateCurrentAvatarStateAsync(eval);
             }
@@ -399,7 +400,7 @@ namespace Nekoyume.BlockChain
                 var slot = eval.OutputStates.GetCombinationSlotState(avatarAddress, slotIndex);
                 var result = (CombinationConsumable5.ResultModel) slot.Result;
 
-                if (!eval.OutputStates.TryGetAvatarStateV2(agentAddress, avatarAddress, out var avatarState))
+                if (!eval.OutputStates.TryGetAvatarStateV2(agentAddress, avatarAddress, out var avatarState, out _))
                 {
                     return;
                 }
@@ -422,7 +423,7 @@ namespace Nekoyume.BlockChain
                     .FirstOrDefault(x =>
                         gameInstance.TableSheets.EquipmentItemRecipeSheet.TryGetValue(x.RecipeId, out _));
 
-                States.Instance.UpdateCombinationSlotState(slotIndex, slot);
+                UpdateCombinationSlotState(slotIndex, slot);
                 UpdateAgentStateAsync(eval);
                 UpdateCurrentAvatarStateAsync(eval);
                 RenderQuest(avatarAddress, avatarState.questList?.completedQuestIds);
@@ -493,7 +494,7 @@ namespace Nekoyume.BlockChain
                 var slot = eval.OutputStates.GetCombinationSlotState(avatarAddress, slotIndex);
                 var result = (CombinationConsumable5.ResultModel) slot.Result;
                 var itemUsable = result.itemUsable;
-                if (!eval.OutputStates.TryGetAvatarStateV2(agentAddress, avatarAddress, out var avatarState))
+                if (!eval.OutputStates.TryGetAvatarStateV2(agentAddress, avatarAddress, out var avatarState, out _))
                 {
                     return;
                 }
@@ -508,7 +509,7 @@ namespace Nekoyume.BlockChain
                 LocalLayerModifier.RemoveItem(avatarAddress, itemUsable.ItemId, itemUsable.RequiredBlockIndex, 1);
                 LocalLayerModifier.AddNewAttachmentMail(avatarAddress, result.id);
 
-                States.Instance.UpdateCombinationSlotState(slotIndex, slot);
+                UpdateCombinationSlotState(slotIndex, slot);
                 UpdateAgentStateAsync(eval);
                 UpdateCurrentAvatarStateAsync(eval);
                 RenderQuest(avatarAddress, avatarState.questList.completedQuestIds);
@@ -535,7 +536,7 @@ namespace Nekoyume.BlockChain
                 var slot = eval.OutputStates.GetCombinationSlotState(avatarAddress, slotIndex);
                 var result = (ItemEnhancement.ResultModel) slot.Result;
                 var itemUsable = result.itemUsable;
-                if (!eval.OutputStates.TryGetAvatarStateV2(agentAddress, avatarAddress, out var avatarState))
+                if (!eval.OutputStates.TryGetAvatarStateV2(agentAddress, avatarAddress, out var avatarState, out _))
                 {
                     return;
                 }
@@ -554,7 +555,7 @@ namespace Nekoyume.BlockChain
                 LocalLayerModifier.RemoveItem(avatarAddress, itemUsable.TradableId, itemUsable.RequiredBlockIndex, 1);
                 LocalLayerModifier.AddNewAttachmentMail(avatarAddress, result.id);
 
-                States.Instance.UpdateCombinationSlotState(slotIndex, slot);
+                UpdateCombinationSlotState(slotIndex, slot);
                 UpdateAgentStateAsync(eval);
                 UpdateCurrentAvatarStateAsync(eval);
                 RenderQuest(avatarAddress, avatarState.questList.completedQuestIds);
@@ -642,11 +643,11 @@ namespace Nekoyume.BlockChain
             var count = order is FungibleOrder fungibleOrder ? fungibleOrder.ItemCount : 1;
             LocalLayerModifier.RemoveItem(avatarAddress, order.TradableId, order.ExpiredBlockIndex, count);
             LocalLayerModifier.AddNewMail(avatarAddress, eval.Action.orderId);
-            
+
             string message;
             if (count > 1)
             {
-                message = string.Format(L10nManager.Localize("NOTIFICATION_MULTIPLE_SELL_CANCEL_COMPLETE"), 
+                message = string.Format(L10nManager.Localize("NOTIFICATION_MULTIPLE_SELL_CANCEL_COMPLETE"),
                     itemName, count);
             }
             else
@@ -673,7 +674,7 @@ namespace Nekoyume.BlockChain
             var itemName = await Util.GetItemNameByOrderId(eval.Action.orderId);
             var order = await Util.GetOrder(eval.Action.orderId);
             var count = order is FungibleOrder fungibleOrder ? fungibleOrder.ItemCount : 1;
-            
+
             string message;
             if (count > 1)
             {
@@ -704,7 +705,7 @@ namespace Nekoyume.BlockChain
             var agentAddress = States.Instance.AgentState.address;
             var avatarAddress = States.Instance.CurrentAvatarState.address;
             if (!eval.OutputStates.TryGetAvatarStateV2(agentAddress, avatarAddress,
-                out var avatarState))
+                out var avatarState, out _))
             {
                 return;
             }
@@ -731,7 +732,7 @@ namespace Nekoyume.BlockChain
 
                         var errorType = ((ShopErrorType) errorCode).ToString();
                         LocalLayerModifier.ModifyAgentGold(agentAddress, price);
-                        
+
                         string message;
                         if (count > 1)
                         {
@@ -740,7 +741,7 @@ namespace Nekoyume.BlockChain
                         }
                         else
                         {
-                            message = string.Format(L10nManager.Localize("NOTIFICATION_BUY_FAIL"), 
+                            message = string.Format(L10nManager.Localize("NOTIFICATION_BUY_FAIL"),
                                 itemName, L10nManager.Localize(errorType), price);
                         }
                         OneLineSystem.Push(MailType.Auction, message, NotificationCell.NotificationType.Alert);
@@ -1020,19 +1021,21 @@ namespace Nekoyume.BlockChain
                                 // ReSharper disable once ConvertClosureToMethodGroup
                                 .DoOnError(e => Debug.LogException(e));
                         });
-                var ead = (Dictionary)eval.Extra[nameof(Action.RankingBattle.EnemyAvatarState)];
+                var epd = (List)eval.Extra[nameof(Action.RankingBattle.EnemyPlayerDigest)];
                 var eid = (Dictionary)eval.Extra[nameof(Action.RankingBattle.EnemyArenaInfo)];
                 var aid = (Dictionary)eval.Extra[nameof(Action.RankingBattle.ArenaInfo)];
-                var enemyAvatarState = new AvatarState(ead);
+                var enemyPlayerDigest = new EnemyPlayerDigest(epd);
                 var arenaInfo = new ArenaInfo(aid);
                 var enemyInfo = new ArenaInfo(eid);
+                var rankingSimulatorSheets = Game.Game.instance.TableSheets.GetRankingSimulatorSheets();
+                var player = new Player(States.Instance.CurrentAvatarState, rankingSimulatorSheets);
 
                 var simulator = new RankingSimulator(
                     new LocalRandom(eval.RandomSeed),
-                    States.Instance.CurrentAvatarState,
-                    enemyAvatarState,
+                    player,
+                    enemyPlayerDigest,
                     new List<Guid>(),
-                    Game.Game.instance.TableSheets.GetRankingSimulatorSheets(),
+                    rankingSimulatorSheets,
                     Action.RankingBattle.StageId,
                     arenaInfo,
                     enemyInfo,
@@ -1114,7 +1117,7 @@ namespace Nekoyume.BlockChain
 
             var agentAddress = eval.Signer;
             var avatarAddress = eval.Action.avatarAddress;
-            if (!eval.OutputStates.TryGetAvatarStateV2(agentAddress, avatarAddress, out var avatarState))
+            if (!eval.OutputStates.TryGetAvatarStateV2(agentAddress, avatarAddress, out var avatarState, out _))
             {
                 return;
             }
