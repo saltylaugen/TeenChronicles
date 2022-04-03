@@ -377,6 +377,7 @@ namespace Nekoyume.UI
                     await States.Instance.SelectAvatarAsync(slotIndex);
                     loadingScreen.Close();
                     Game.Event.OnRoomEnter.Invoke(false);
+                    Game.Event.OnUpdateAddresses.Invoke();
                 }
                 catch (KeyNotFoundException e)
                 {
