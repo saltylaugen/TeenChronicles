@@ -250,12 +250,8 @@ namespace Nekoyume.UI
                     continue;
                 }
 
-                var (skillName, _, _) = itemOptionInfo.SkillOptions[i];
-                // [TEN Code Block Start]
-                // skillName += $" = {itemOptionInfo.SkillOptions[i].power} [{itemOptionInfo.SkillOptions[i].chance}%]";
-                // [TEN Code Block End]
-                
-                optionView.UpdateView(skillName.GetLocalizedName(), string.Empty);
+                var (skillRow, _, _) = itemOptionInfo.SkillOptions[i];
+                optionView.UpdateView(skillRow.GetLocalizedName(), string.Empty);
                 optionView.Show();
             }
         }

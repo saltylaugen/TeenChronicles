@@ -153,6 +153,14 @@ namespace Nekoyume.UI.Scroller
                         NotificationCell.NotificationType.Alert);
                 }).AddTo(gameObject);
 
+            challengeButton.OnClickDisabledSubject
+                .ThrottleFirst(TimeSpan.FromSeconds(2f))
+                .Subscribe(_ =>
+                {
+                    OneLineSystem.Push(MailType.System, L10nManager.Localize("UI_EQUIP_FAILED"),
+                        NotificationCell.NotificationType.Alert);
+                }).AddTo(gameObject);
+
             Game.Event.OnUpdatePlayerEquip
                 .Where(_ => _isCurrentUser)
                 .Subscribe(player =>

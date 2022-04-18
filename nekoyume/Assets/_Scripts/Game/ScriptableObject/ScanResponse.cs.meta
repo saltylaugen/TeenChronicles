@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:nekoyume/Assets/_Scripts/Game/ScriptableObject/ScanResponse.cs.meta
 guid: d4678ca2b4a36644daa817a8baf5aa27
+========
+guid: 8524b9e2f2b073e488b509e3d08b7fc5
+>>>>>>>> main:nekoyume/Assets/_Scripts/UI/Module/AvatarCP.cs.meta
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
