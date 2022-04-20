@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Collections.Generic;
 using Nekoyume.Helper;
 using Nekoyume.Model.Item;
@@ -74,7 +75,25 @@ namespace Nekoyume.UI.Module
 
             baseItemView.CountText.gameObject.SetActive(model.ItemBase.ItemType == ItemType.Material);
             baseItemView.CountText.text = model.OrderDigest.ItemCount.ToString();
-            baseItemView.PriceText.text = model.OrderDigest.Price.GetQuantityString();
+
+            // [TEN Code Block Start]
+            if (model.OrderDigest.ItemCount > 1) {
+                decimal price = 0;
+                if (decimal.TryParse(model.OrderDigest.Price.GetQuantityString(), NumberStyles.AllowDecimalPoint,
+                    CultureInfo.InvariantCulture, out var result))
+                {
+                    price = result;
+                }
+                var unitPrice = System.Math.Round(price / model.OrderDigest.ItemCount, 7);
+
+                baseItemView.PriceText.text = $"{model.OrderDigest.Price.GetQuantityString()}({unitPrice})";
+            } else {
+                baseItemView.PriceText.text = model.OrderDigest.Price.GetQuantityString();
+            }
+
+            // baseItemView.PriceText.text = model.OrderDigest.Price.GetQuantityString();
+            
+            // [TEN Code Block END]
 
             model.Selected.Subscribe(b => baseItemView.SelectObject.SetActive(b)).AddTo(_disposables);
             model.Expired.Subscribe(b => baseItemView.ExpiredObject.SetActive(b)).AddTo(_disposables);

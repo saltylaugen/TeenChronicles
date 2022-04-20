@@ -1,6 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
 using Libplanet.Assets;
@@ -46,10 +44,6 @@ namespace Nekoyume.UI
         private Button closeButton = null;
 
         private const int LimitPrice = 100000000;
-        
-        // [TEN Code Block Start]
-        private bool isRenewRunning = false;
-        // [TEN Code Block End]
 
         private Shop SharedModel { get; set; }
 

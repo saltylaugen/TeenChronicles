@@ -177,14 +177,18 @@ namespace Nekoyume.UI.Scroller
         // [TEN Code Block Start]
         IEnumerator ChallangeRemainingTickets()
         {
-            var currentAddress = States.Instance.CurrentAvatarState?.address;
-            var arenaInfo = States.Instance.WeeklyArenaState.GetArenaInfo(currentAddress.Value);
-
-            for (int i = 0; i < arenaInfo.DailyChallengeCount; i++)
+            if (_viewModel is null)
             {
-                Context.OnClickChallenge.OnNext(this);
-                _onClickChallenge.OnNext(this);
-                yield return new WaitForSeconds(3);
+                Debug.LogError($"Argument is null.");
+            }
+            else
+            {
+                for (int i = 0; i < _viewModel.currentAvatarArenaInfo.DailyChallengeCount; i++)
+                {
+                    Context.OnClickChallenge.OnNext(this);
+                    _onClickChallenge.OnNext(this);
+                    yield return new WaitForSeconds(3);
+                }
             }
         }
         // [TEN Code Block End]

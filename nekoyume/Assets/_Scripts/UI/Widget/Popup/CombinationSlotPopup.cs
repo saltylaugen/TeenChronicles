@@ -251,7 +251,10 @@ namespace Nekoyume.UI
                 }
 
                 var (skillRow, _, _) = itemOptionInfo.SkillOptions[i];
-                optionView.UpdateView(skillRow.GetLocalizedName(), string.Empty);
+                // [TEN Code Block Start]
+                var skillValue = $"{itemOptionInfo.SkillOptions[i].power} [{itemOptionInfo.SkillOptions[i].chance}%]";
+                optionView.UpdateView($"{skillRow.GetLocalizedName()} = {skillValue}", string.Empty);
+                // [TEN Code Block End]
                 optionView.Show();
             }
         }

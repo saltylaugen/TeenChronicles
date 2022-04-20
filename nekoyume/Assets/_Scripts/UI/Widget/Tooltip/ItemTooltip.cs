@@ -7,6 +7,8 @@ using Nekoyume.Helper;
 using Nekoyume.Model.Item;
 using Nekoyume.UI.Model;
 using Nekoyume.UI.Module;
+using Nekoyume.State;
+using TMPro;
 using UnityEngine;
 using ShopItem = Nekoyume.UI.Model.ShopItem;
 
@@ -54,6 +56,11 @@ namespace Nekoyume.UI
         protected bool _isClickedButtonArea;
 
         protected override PivotPresetType TargetPivotPresetType => PivotPresetType.TopRight;
+
+        // [TEN Code Block Start]
+        [SerializeField] private GameObject crafterTextObject;
+        [SerializeField] private TextMeshProUGUI crafterText;
+        // [TEN Code Block Enb]
 
         protected override void Awake()
         {
@@ -107,6 +114,9 @@ namespace Nekoyume.UI
         {
             buy.gameObject.SetActive(false);
             sell.gameObject.SetActive(false);
+            // [TEN Code Block Start]
+            crafterTextObject.gameObject.SetActive(false);
+            // [TEN Code Block End]
             acquisitionPlaceButtons.ForEach(button => button.gameObject.SetActive(false));
             detail.Set(
                 item,
@@ -139,6 +149,9 @@ namespace Nekoyume.UI
         {
             buy.gameObject.SetActive(false);
             sell.gameObject.SetActive(false);
+            // [TEN Code Block Start]
+            crafterTextObject.gameObject.SetActive(false);
+            // [TEN Code Block End]
             acquisitionPlaceButtons.ForEach(button => button.gameObject.SetActive(false));
             detail.Set(
                 item.ItemBase,
@@ -170,6 +183,9 @@ namespace Nekoyume.UI
             submitButton.gameObject.SetActive(false);
             buy.gameObject.SetActive(false);
             sell.gameObject.SetActive(true);
+            // [TEN Code Block Start]
+            crafterTextObject.gameObject.SetActive(false);
+            // [TEN Code Block End]
             sell.Set(item.OrderDigest.ExpiredBlockIndex,
                 () =>
                 {
@@ -218,6 +234,13 @@ namespace Nekoyume.UI
                 (item.ItemBase.ItemType == ItemType.Equipment ||
                  item.ItemBase.ItemType == ItemType.Costume));
             _onClose = onClose;
+            
+            // [TEN Code Block Start]
+            crafterTextObject.gameObject.SetActive(true);
+            crafterText.text = "Crafted by...";
+            ShopItem shopItem = item as ShopItem;
+            UpdateUserInfo(shopItem.OrderDigest.OrderId);
+            // [TEN Code Block End]
 
             scrollbar.value = 1f;
             UpdatePosition(target);
@@ -350,5 +373,19 @@ namespace Nekoyume.UI
         {
             _isPointerOnScrollArea = value;
         }
+        
+        // [TEN Code Block Start]
+        private async void UpdateUserInfo(Guid orderId)
+        {
+            var order = await Util.GetOrder(orderId);
+            var (exist, avatarState) = await States.TryGetAvatarStateAsync(order.SellerAvatarAddress);
+            if (avatarState is null)
+            {
+                return;
+            }
+
+            crafterText.text = $"Crafted by. {avatarState.NameWithHash}";
+        }
+        // [TEN Code Block End]
     }
 }

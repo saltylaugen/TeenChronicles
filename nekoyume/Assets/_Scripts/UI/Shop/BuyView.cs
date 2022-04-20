@@ -118,8 +118,10 @@ namespace Nekoyume
         private readonly ReactiveProperty<ItemSubTypeFilter> _selectedSubTypeFilter =
             new ReactiveProperty<ItemSubTypeFilter>(ItemSubTypeFilter.All);
 
+        // [TEN Code Block Start]
         private readonly ReactiveProperty<ShopSortFilter> _selectedSortFilter =
-            new ReactiveProperty<ShopSortFilter>(ShopSortFilter.Class);
+            new ReactiveProperty<ShopSortFilter>(ShopSortFilter.Time);
+        // [TEN Code Block END]
 
         private readonly ReactiveProperty<List<int>> _selectedItemIds =
             new ReactiveProperty<List<int>>(new List<int>());
@@ -377,7 +379,9 @@ namespace Nekoyume
             _resetAnimator.Play(_hashDisabled);
 
             _selectedSubTypeFilter.SetValueAndForceNotify(ItemSubTypeFilter.Weapon);
-            _selectedSortFilter.SetValueAndForceNotify(ShopSortFilter.Class);
+            // [TEN Code Block Start]
+            _selectedSortFilter.SetValueAndForceNotify(ShopSortFilter.Time);
+            // [TEN Code Block End]
             _selectedItemIds.Value.Clear();
             _isAscending.SetValueAndForceNotify(false);
             _levelLimit.SetValueAndForceNotify(false);
@@ -407,9 +411,12 @@ namespace Nekoyume
             {
                 models = models.Where(x => Util.IsUsableItem(x.ItemBase)).ToList();
             }
-
+            // [TEN Code Block Start]
             return _selectedSortFilter.Value switch
             {
+                ShopSortFilter.Time => _isAscending.Value
+                    ? models.OrderBy(x => x.OrderDigest.ExpiredBlockIndex).ToList()
+                    : models.OrderByDescending(x => x.OrderDigest.ExpiredBlockIndex).ToList(),
                 ShopSortFilter.CP => _isAscending.Value
                     ? models.OrderBy(x => x.OrderDigest.CombatPoint).ToList()
                     : models.OrderByDescending(x => x.OrderDigest.CombatPoint).ToList(),
@@ -423,8 +430,12 @@ namespace Nekoyume
                     : models.OrderByDescending(x => x.Grade)
                         .ThenByDescending(x => x.ItemBase.ItemType)
                         .ToList(),
+                ShopSortFilter.Level => _isAscending.Value
+                    ? models.OrderBy(x => x.OrderDigest.Level).ToList()
+                    : models.OrderByDescending(x => x.OrderDigest.Level).ToList(),
                 _ => throw new ArgumentOutOfRangeException()
             };
+            // [TEN Code Block End]
         }
 
         private bool IsLoading(ICollection models)

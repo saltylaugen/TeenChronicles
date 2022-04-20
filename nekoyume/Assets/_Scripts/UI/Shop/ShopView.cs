@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using Lib9c.Model.Order;
 using Nekoyume.EnumType;
 using Nekoyume.Helper;
 using Nekoyume.Model.Item;
+using Nekoyume.Model.Mail;
 using Nekoyume.State;
 using Nekoyume.TableData;
+using Nekoyume.UI.Scroller;
 using Nekoyume.UI.Model;
 using TMPro;
 using Unity.Mathematics;
@@ -268,5 +271,67 @@ namespace Nekoyume.UI.Module
                 model.Expired.Value = isExpired;
             }
         }
+
+        // [TEN Code Block Start]
+        private bool isRenewRunning = false;
+        
+        public void RequestRenew()
+        {
+            if(isRenewRunning)
+            {
+                OneLineSystem.Push(MailType.System, $"Wait Renew Progress",
+                    NotificationCell.NotificationType.Information);
+                return;
+            }
+            
+            StartCoroutine(CoRenew());
+        }
+
+        private IEnumerator CoRenew()
+        {
+            isRenewRunning = true;
+            OneLineSystem.Push(MailType.System, $"ALL Renew Start, Don't leave this window",
+                NotificationCell.NotificationType.Information);
+
+            var renewed = new List<Guid>();
+            foreach (var items in _items)
+            {
+                foreach (var item in items.Value)
+                {
+                    if (!(item.ItemBase is ITradableItem tradableItem))
+                    {
+                        break;
+                    }
+
+                    var orderId = item.OrderDigest.OrderId;
+                    var price = item.OrderDigest.Price;
+                    var count = item.OrderDigest.ItemCount;
+                    var itemSubType = item.ItemBase.ItemSubType;
+                    var isRenewRequired = !renewed.Contains(orderId) && item.Expired.Value;
+
+                    // Debug.LogError($"{orderId} {price} {count} {itemSubType} {isRenewRequired}");
+                    
+                    if (isRenewRequired)
+                    {
+                        Game.Game.instance.ActionManager.UpdateSell(
+                            orderId,
+                            tradableItem,
+                            count,
+                            price,
+                            itemSubType).Subscribe();
+                        Analyzer.Instance.Track("Unity/UpdateSell");
+                        renewed.Add(orderId);
+
+                        OneLineSystem.Push(MailType.Auction, $"{item.ItemBase.GetLocalizedName()} Renew Start",
+                            NotificationCell.NotificationType.Information);
+                        yield return new WaitForSeconds(5f);
+                    }
+                }
+            }
+
+            yield return new WaitForSeconds(120f);
+            isRenewRunning = false;
+        }
+        // [TEN Code Block End]
     }
 }

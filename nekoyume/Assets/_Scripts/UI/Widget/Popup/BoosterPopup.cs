@@ -167,28 +167,6 @@ namespace Nekoyume.UI
             _stage.IsShowHud = true;
               
             // [TEN Code Block Start]
-            // if (_stageId >= GameConfig.MimisbrunnrStartStageId)
-            // {
-            //     Game.Game.instance.ActionManager.MimisbrunnrBattle(
-            //         _costumes,
-            //         _equipments,
-            //         _consumables,
-            //         _worldId,
-            //         _stageId,
-            //         (int)apSlider.value
-            //     ).Subscribe();
-            // }
-            // else
-            // {
-            //     Game.Game.instance.ActionManager.HackAndSlash(
-            //         _costumes,
-            //         _equipments,
-            //         _consumables,
-            //         _worldId,
-            //         _stageId,
-            //         (int)apSlider.value
-            //     ).Subscribe();
-            // }
             StartCoroutine(BulkHackAndSlash());
             // [TEN Code Block End]
         }
