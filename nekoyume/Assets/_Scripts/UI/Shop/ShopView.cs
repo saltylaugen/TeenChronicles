@@ -52,6 +52,10 @@ namespace Nekoyume.UI.Module
         private readonly ReactiveProperty<int> _page = new ReactiveProperty<int>();
         private readonly List<IDisposable> _disposables = new List<IDisposable>();
 
+        // [TEN Code Block Start]
+        private bool isRenewRunning = false;
+        // [TEN Code Block End]
+
         private Image nextPageImage;
         private Image previousPageImage;
         private int _column = 0;
@@ -86,6 +90,10 @@ namespace Nekoyume.UI.Module
         public void Show(ReactiveProperty<List<OrderDigest>> digests,
             Action<ShopItem, RectTransform> clickItem)
         {
+            // [TEN Code Block Start]
+            isRenewRunning = false;
+            // [TEN Code Block End]
+
             Reset();
             InstantiateItemView();
             SetAction(clickItem);
@@ -272,7 +280,6 @@ namespace Nekoyume.UI.Module
         }
 
         // [TEN Code Block Start]
-        private bool isRenewRunning = false;
         
         public void RequestRenew()
         {
@@ -295,7 +302,7 @@ namespace Nekoyume.UI.Module
             var renewed = new List<Guid>();
             foreach (var items in _items)
             {
-                foreach (var item in items.Value)
+                foreach (var item in items.Value.ToList())
                 {
                     if (!(item.ItemBase is ITradableItem tradableItem))
                     {
@@ -323,7 +330,7 @@ namespace Nekoyume.UI.Module
 
                         OneLineSystem.Push(MailType.Auction, $"{item.ItemBase.GetLocalizedName()} Renew Start",
                             NotificationCell.NotificationType.Information);
-                        yield return new WaitForSeconds(5f);
+                        yield return new WaitForSeconds(4f);
                     }
                 }
             }
