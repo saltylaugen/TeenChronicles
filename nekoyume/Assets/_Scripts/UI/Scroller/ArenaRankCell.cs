@@ -336,6 +336,10 @@ namespace Nekoyume.UI.Scroller
             else
             {
                 challengeButton.SetConditionalState(_viewModel.currentAvatarArenaInfo.DailyChallengeCount > 0 && canBattle);
+
+                // [TEN Code Block Start]
+                maxChallengeButton.SetSubmittable(_viewModel.currentAvatarArenaInfo.DailyChallengeCount > 0);
+                // [TEN Code Block End]
             }
         }
 
