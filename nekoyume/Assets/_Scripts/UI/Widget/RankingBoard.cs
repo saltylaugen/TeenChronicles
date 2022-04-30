@@ -12,6 +12,7 @@ using Nekoyume.Game.Controller;
 using Nekoyume.Helper;
 using Nekoyume.Model.State;
 using Nekoyume.State;
+using Nekoyume.Model.Mail;
 using Nekoyume.UI.Model;
 using Nekoyume.UI.Module;
 using Nekoyume.UI.Scroller;
@@ -37,6 +38,14 @@ namespace Nekoyume.UI
 
         [SerializeField]
         private SpeechBubble speechBubble = null;
+
+        // [TEN Code Block Start]
+        [SerializeField]
+        private Button upButton;
+        [SerializeField]
+        private Button downButton;
+        private int paginationState = -1;
+        // [TEN Code Block End]
 
         private Nekoyume.Model.State.RankingInfo[] _avatarRankingStates;
 
@@ -70,6 +79,47 @@ namespace Nekoyume.UI
                 Close(true);
                 Game.Event.OnRoomEnter.Invoke(true);
             });
+
+            // [TEN Code Block Start]
+            upButton.onClick.AddListener(async () =>
+            {
+                OneLineSystem.Push(
+                    MailType.System,
+                    "It can take a long time. Please don't leave the current window",
+                    NotificationCell.NotificationType.Information);
+
+                paginationState = 1;
+                await UniTask.Run(async () =>
+                {
+                    await UpdateWeeklyCache(States.Instance.WeeklyArenaState);
+                });
+                UpdateArena();
+
+                OneLineSystem.Push(
+                    MailType.System,
+                    "Load Finish",
+                    NotificationCell.NotificationType.Information);
+            });
+            downButton.onClick.AddListener(async () =>
+            {
+                OneLineSystem.Push(
+                    MailType.System,
+                    "It can take a long time. Please don't leave the current window",
+                    NotificationCell.NotificationType.Information);
+
+                paginationState = 0;
+                await UniTask.Run(async () =>
+                {
+                    await UpdateWeeklyCache(States.Instance.WeeklyArenaState);
+                });
+                UpdateArena();
+
+                OneLineSystem.Push(
+                    MailType.System,
+                    "Load Finish",
+                    NotificationCell.NotificationType.Information);
+            });
+            // [TEN Code Block End]
 
             CloseWidget = () =>
             {
@@ -321,7 +371,20 @@ namespace Nekoyume.UI
                     }
                 }
 
-                var result = await agent.GetStateBulk(arenaInfoAddressList);
+                // Chunking list for reduce loading time.
+                var chunks = arenaInfoAddressList
+                    .Select((x, i) => new { Index = i, Value = x })
+                    .GroupBy(x => x.Index / 1000)
+                    .Select(x => x.Select(v => v.Value).ToList())
+                    .ToList();
+                Dictionary<Address, IValue> result = new Dictionary<Address, IValue>();
+                for (var index = 0; index < chunks.Count; index++)
+                {
+                    var chunk = chunks[index];
+                    var states = await Game.Game.instance.Agent.GetStateBulk(chunk);
+                    result = result.Union(states)
+                        .ToDictionary(pair => pair.Key, pair => pair.Value);
+                }
                 var infoList = new List<ArenaInfo>();
                 foreach (var iValue in result.Values)
                 {
@@ -339,19 +402,33 @@ namespace Nekoyume.UI
             if (States.Instance.CurrentAvatarState != null)
             {
                 // [TEN Code Block Start]
-                int upperListCount = 300;
-                int lowerListCount = 100;
+                var upperRange = 90;
+                var lowerRange = 10;
+                var targetAddress = States.Instance.CurrentAvatarState.address;
+                if (paginationState == 1)
+                {
+                    (int rank, ArenaInfo arenaInfo) wc = _weeklyCachedInfo[4];
+                    targetAddress = wc.arenaInfo.AvatarAddress;
+                    upperRange = 100;
+                    lowerRange = 0;
+                }
+                else if (paginationState == 0)
+                {
+                    (int rank, ArenaInfo arenaInfo) wc = _weeklyCachedInfo[_weeklyCachedInfo.Count -1];
+                    targetAddress = wc.arenaInfo.AvatarAddress;
+                    lowerRange = 100;
+                    upperRange = 0;
+                }
 
-                var currentAvatarAddress = States.Instance.CurrentAvatarState.address;
-                var infos2 = _arenaInfoList.GetArenaInfos(currentAvatarAddress, upperListCount, lowerListCount);
+                var infos2 = _arenaInfoList.GetArenaInfos(targetAddress, upperRange, lowerRange);
+                // [TEN Code Block End]
 
                 // Player does not play prev & this week arena.
                 if (!infos2.Any() && _arenaInfoList.OrderedArenaInfos.Any())
                 {
                     var address = _arenaInfoList.OrderedArenaInfos.Last().AvatarAddress;
-                    infos2 = _arenaInfoList.GetArenaInfos(address, upperListCount, 0);
+                    infos2 = _arenaInfoList.GetArenaInfos(address, 90, 0);
                 }
-                // [TEN Code Block End]
 
                 infos.AddRange(infos2);
                 infos = infos.ToImmutableHashSet().OrderBy(tuple => tuple.rank).ToList();
