@@ -398,7 +398,9 @@ namespace Nekoyume.UI
                 _arenaInfoList.Update(infoList);
             }
 
-            var infos = _arenaInfoList.GetArenaInfos(1, 3);
+            // [TEN Code Block Start]
+            var infos = _arenaInfoList.GetArenaInfos(1, 30);
+            // [TEN Code Block End]
             if (States.Instance.CurrentAvatarState != null)
             {
                 // [TEN Code Block Start]
@@ -407,7 +409,7 @@ namespace Nekoyume.UI
                 var targetAddress = States.Instance.CurrentAvatarState.address;
                 if (paginationState == 1)
                 {
-                    (int rank, ArenaInfo arenaInfo) wc = _weeklyCachedInfo[4];
+                    (int rank, ArenaInfo arenaInfo) wc = _weeklyCachedInfo[31];
                     targetAddress = wc.arenaInfo.AvatarAddress;
                     upperRange = 100;
                     lowerRange = 0;
@@ -430,7 +432,10 @@ namespace Nekoyume.UI
                     infos2 = _arenaInfoList.GetArenaInfos(address, 90, 0);
                 }
 
+                var infos3 = _arenaInfoList.GetArenaInfos(States.Instance.CurrentAvatarState.address, 1, 1);
+
                 infos.AddRange(infos2);
+                infos.AddRange(infos3);
                 infos = infos.ToImmutableHashSet().OrderBy(tuple => tuple.rank).ToList();
             }
 
